@@ -23,10 +23,21 @@
             color: #58a6ff;
             text-decoration: none;
         }
+        .contacto {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-
+<div class="contacto">
+    Contacto: 
+    <a href="mailto:luisdelatorrepalomino@gmail.com">
+        luisdelatorrepalomino@gmail.com
+    </a>
+</div>
 <h1>Luis de la Torre Palomino</h1>
 <p>Desarrollador autodidacta | Automatización | Inteligencia Artificial | Herramientas CCTV</p>
 
@@ -51,6 +62,22 @@
         archivos JSON para continuar el trabajo posteriormente.
     </p>
 
+    <p><b>Características:</b></p>
+    <ul style="text-align:left; display:inline-block;">
+        <li>Detección automática de formas y rostros usando YOLOv8</li>
+        <li>Difuminado manual y automático</li>
+        <li>Control de reproducción de video: play, pausa, velocidad x16, saltos de bloque de frames, frame anterior y siguiente</li>
+        <li>Captura de frames como imágenes para posterior entrenamiento con IA</li>
+        <li>Guardado del progreso en archivos JSON</li>
+        <li>Exportación de video usando FFmpeg con soporte GPU AMD</li>
+    </ul>
+
+    <p style="font-size:14px; color:#8b949e;">
+    Nota: Para obtener detecciones automáticas más precisas en videos complejos (por ejemplo, cámaras CCTV),
+    el modelo de inteligencia artificial puede requerir la asistencia del desarrollador para el entrenamiento
+    o ajuste utilizando imágenes del video a procesar. En estos casos se recomienda contactar al correo del desarrollador.
+    </p>
+    
     <p><b>Tecnologías:</b> Python, YOLO, OpenCV, PyTorch, FFmpeg</p>
 
     <a href="https://github.com/luisdl-dev/videoeditor-difuminador" target="_blank">
