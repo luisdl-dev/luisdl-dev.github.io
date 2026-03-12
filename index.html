@@ -49,27 +49,16 @@
         a formas o rostros mediante tecnología de difuminado manual o automático con inteligencia artificial,
         con el objetivo de proteger la identidad de las personas.
     </p>
-
-    <p>
-        El sistema utiliza YOLOv8 y OpenCV para analizar los frames del video y
-        permite controlar manualmente la reproducción mediante herramientas como
-        reproducción, pausa, avance y retroceso frame a frame.
-    </p>
-
-    <p>
-        Incluye exportación de video procesado utilizando FFmpeg con soporte de GPU,
-        captura de frames como imágenes y guardado del progreso del proyecto en
-        archivos JSON para continuar el trabajo posteriormente.
-    </p>
-
+    
     <p><b>Características:</b></p>
     <ul style="text-align:left; display:inline-block;">
-        <li>Detección automática de formas y rostros usando YOLOv8</li>
-        <li>Difuminado manual y automático</li>
-        <li>Control de reproducción de video: play, pausa, velocidad x16, saltos de bloque de frames, frame anterior y siguiente</li>
-        <li>Captura de frames como imágenes para posterior entrenamiento con IA</li>
-        <li>Guardado del progreso en archivos JSON</li>
-        <li>Exportación de video usando FFmpeg con soporte GPU AMD</li>
+        <li>Detección automática de formas y rostros mediante inteligencia artificial con YOLOv8</li>
+        <li>Difuminado manual con seguimiento (tracking) de objetos</li>
+        <li>Control rápido de reproducción de video: play, pausa, velocidad hasta x16, saltos por bloques de frames, frame anterior y siguiente</li>
+        <li>Captura de frames como imágenes para posterior entrenamiento de modelos de IA</li>
+        <li>Guardado del progreso de difuminado en archivos JSON, permitiendo continuar el trabajo sin reprocesar el video</li>
+        <li>Exportación de video utilizando FFmpeg con soporte GPU (DirectML)</li>
+        <li>Aplicación optimizada para equipos de bajo rendimiento, con capacidad de funcionamiento utilizando solo CPU sin necesidad de GPU dedicada</li>
     </ul>
 
     <p style="font-size:14px; color:#8b949e;">
