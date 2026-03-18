@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Luis de la Torre Palomino | Portafolio Personal</title>
+    <style>
+        body {
+            font-family: Arial;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            text-align: center;
+            padding: 40px;
+        }
+        h1 { color: #58a6ff; }
+        .card {
+            background: #161b22;
+            padding: 20px;
+            margin: 20px auto;
+            width: 60%;
+            border-radius: 10px;
+        }
+        a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+        .contacto {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="contacto">
+    Contacto: 
+    <a href="mailto:luisdelatorrepalomino@gmail.com">
+        luisdelatorrepalomino@gmail.com
+    </a>
+</div>
+<h1>Luis de la Torre Palomino</h1>
+<p>Desarrollador autodidacta | Automatización | Inteligencia Artificial | Herramientas CCTV</p>
+
+<div class="card">
+    <h2>Editor de Video con Difuminado Manual y Automático de Rostros</h2>
+
+    <p>
+        Aplicación desarrollada en Python que permite reproducir videos y aplicar difuminado
+        a formas o rostros mediante tecnología de difuminado manual o automático con inteligencia artificial,
+        con el objetivo de proteger la identidad de las personas.
+    </p>
+    
+    <p><b>Características:</b></p>
+    <ul style="text-align:left; display:inline-block;">
+        <li>Detección automática de formas y rostros mediante inteligencia artificial con YOLOv8</li>
+        <li>Difuminado manual con seguimiento (tracking) de objetos</li>
+        <li>Control rápido de reproducción de video: play, pausa, velocidad hasta x16, saltos por bloques de frames, frame anterior y siguiente</li>
+        <li>Captura de frames como imágenes para posterior entrenamiento de modelos de IA</li>
+        <li>Guardado del progreso de difuminado en archivos JSON, permitiendo continuar el trabajo sin reprocesar el video</li>
+        <li>Exportación de video utilizando FFmpeg con soporte GPU (DirectML)</li>
+        <li>Aplicación optimizada para equipos de bajo rendimiento, con capacidad de funcionamiento utilizando solo CPU sin necesidad de GPU dedicada</li>
+    </ul>
+
+    <p style="font-size:14px; color:#8b949e;">
+    Nota: Para obtener detecciones automáticas más precisas en videos complejos (por ejemplo, cámaras CCTV),
+    el modelo de inteligencia artificial puede requerir la asistencia del desarrollador para el entrenamiento
+    o ajuste utilizando imágenes del video a procesar. En estos casos se recomienda contactar al correo del desarrollador.
+    </p>
+    
+    <p><b>Tecnologías:</b> Python, YOLO, OpenCV, PyTorch, FFmpeg</p>
+	
+	<img src="assets/images/videoeditor-difuminador/interfaz.png" alt="Interfaz" width="600">
+	<img src="assets/images/videoeditor-difuminador/demo1.png" alt="Demo 1" width="600">
+	<img src="assets/images/videoeditor-difuminador/demo2.png" alt="Demo 2" width="600">
+	
+    <a href="https://github.com/luisdl-dev/videoeditor-difuminador" target="_blank">
+        Ver proyecto
+    </a>
+</div>
+    
+<div class="card">
+    <h2>Detección de Movimiento en Videos largos con Inteligencia Artificial</h2>
+
+    <p>
+        Herramienta desarrollada en Python para analizar grabaciones de video y extraer automáticamente 
+        imágenes relevantes cuando ocurre movimiento o se detecta la presencia de personas o rostros.
+    </p>
+
+    <p>
+        El sistema combina detección de movimiento mediante OpenCV con modelos optimizados de 
+        inteligencia artificial utilizando OpenVINO, permitiendo filtrar eventos reales dentro 
+        de largas grabaciones de videovigilancia.
+    </p>
+
+    <p><b>Características:</b></p>
+
+    <ul style="text-align:left; display:inline-block;">
+        <li>Detección de movimiento utilizando algoritmo MOG2</li>
+        <li>Detección de personas mediante modelo de inteligencia artificial optimizado con OpenVINO</li>
+        <li>Detección de rostros en el video</li>
+        <li>Extracción automática de imágenes cuando ocurre un evento relevante</li>
+        <li>Opciones de redimensionado para generar datasets de entrenamiento</li>
+        <li>Marca de tiempo (timestamp) en cada imagen generada</li>
+        <li>Interfaz gráfica desarrollada con PyQt para facilitar el uso</li>
+        <li>Optimizado para funcionar en CPU de equipos de bajo rendimiento.</li>
+    </ul>
+
+    <p><b>Tecnologías:</b> Python, OpenCV, OpenVINO, NumPy, PyQt</p>
+
+    <a href="https://github.com/luisdl-dev/video-mov-deteccion" target="_blank">
+        Ver proyecto
+    </a>
+</div>
+ 
+<div class="card">
+    <h2>Monitorear Desconexiones de NVR y Cámaras</h2>
+
+    <p>
+        Proyecto desarrollado en Python para Windows que supervisa múltiples rangos de direcciones IP 
+        dentro de una red local, incluyendo dispositivos críticos como NVRs y cámaras de videovigilancia.
+    </p>
+
+    <p>
+        El sistema detecta en tiempo real fallas de conectividad y, cuando una IP permanece inaccesible 
+        durante un tiempo configurable, envía una alerta automática a través de Telegram.
+    </p>
+
+    <p>
+        Implementa monitoreo concurrente para garantizar eficiencia incluso al supervisar decenas 
+        de dispositivos simultáneamente.
+    </p>
+
+    <a href="https://github.com/luisdl-dev/seguimiento-desconexion-camaras-ip" target="_blank">
+        Ver proyecto
+    </a>
+</div>
+
+</body>
+</html>
