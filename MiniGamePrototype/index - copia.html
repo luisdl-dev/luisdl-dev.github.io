@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mini Clash 3D</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #1a1a2e; color: #fff; overflow: hidden; }
+  #game-container { position: relative; width: 100vw; height: 100vh; }
+  canvas { display: block; cursor: crosshair; }
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .player-info { display: flex; flex-direction: column; gap: 4px; }
+  .player-info.enemy { text-align: right; }
+  .player-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+  .hp-bar { width: 200px; height: 14px; background: rgba(0,0,0,0.5); border-radius: 7px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); }
+  .hp-fill { height: 100%; transition: width 0.3s; }
+  .hp-fill.blue { background: linear-gradient(90deg, #4a90e2, #6ab0ff); }
+  .hp-fill.red { background: linear-gradient(90deg, #e24a4a, #ff6a6a); }
+  #mineral-display {
+    position: absolute; bottom: 110px; left: 20px;
+    font-size: 28px; font-weight: bold;
+    color: #6ee7ff; text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    pointer-events: none;
+    z-index: 10;
+  }
+  #mineral-display .icon { font-size: 32px; }
+  #unit-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 16px 20px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    display: flex; gap: 12px; justify-content: center;
+    z-index: 10;
+  }
+  .unit-card {
+    width: 88px; padding: 8px 6px;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 10px; cursor: pointer;
+    transition: all 0.15s; text-align: center;
+    backdrop-filter: blur(4px);
+  }
+  .unit-card:hover:not(.disabled) { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+  .unit-card.selected { border-color: #6ee7ff; background: rgba(110,231,255,0.2); }
+  .unit-card.disabled { opacity: 0.4; cursor: not-allowed; }
+  .unit-icon { font-size: 24px; margin-bottom: 2px; }
+  .unit-name { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+  .unit-cost { font-size: 11px; color: #6ee7ff; }
+  .turret-count { font-size: 10px; color: #ffd700; margin-top: 1px; font-weight: 600; }
+  #message {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 64px; font-weight: 900; color: #fff;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    pointer-events: none; opacity: 0; transition: opacity 0.5s;
+    z-index: 20; text-align: center;
+  }
+  #message.show { opacity: 1; }
+  #restart-btn {
+    position: absolute; top: 60%; left: 50%; transform: translate(-50%, 0);
+    padding: 12px 32px; font-size: 18px; font-weight: 600;
+    background: #4a90e2; color: white; border: none; border-radius: 8px;
+    cursor: pointer; display: none; z-index: 20;
+  }
+  #restart-btn:hover { background: #5aa0f2; }
+  #instructions {
+    position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px;
+    font-size: 13px; opacity: 0.8; z-index: 10; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div id="hud">
+    <div class="player-info">
+      <div class="player-label">Tu torre</div>
+      <div class="hp-bar"><div class="hp-fill blue" id="hp-player" style="width:100%"></div></div>
+    </div>
+    <div class="player-info enemy">
+      <div class="player-label">Torre enemiga</div>
+      <div class="hp-bar"><div class="hp-fill red" id="hp-enemy" style="width:100%"></div></div>
+    </div>
+  </div>
+
+  <div id="instructions">Selecciona una unidad y haz clic en el carril para desplegarla</div>
+
+  <div id="mineral-display">
+    <span class="icon">💎</span> <span id="mineral-count">0</span>
+  </div>
+
+  <div id="unit-bar">
+    <div class="unit-card" data-unit="melee">
+      <div class="unit-icon">⚔️</div>
+      <div class="unit-name">Guerrero</div>
+      <div class="unit-cost">💎 3</div>
+    </div>
+    <div class="unit-card" data-unit="ranged">
+      <div class="unit-icon">🏹</div>
+      <div class="unit-name">Arquero</div>
+      <div class="unit-cost">💎 4</div>
+    </div>
+    <div class="unit-card" data-unit="tank">
+      <div class="unit-icon">🛡️</div>
+      <div class="unit-name">Tanque</div>
+      <div class="unit-cost">💎 6</div>
+    </div>
+    <div class="unit-card turret-card" data-unit="turret">
+      <div class="unit-icon">🗼</div>
+      <div class="unit-name">Torreta</div>
+      <div class="unit-cost">💎 10</div>
+      <div class="turret-count" id="turret-count">slots libres</div>
+    </div>
+    <div class="unit-card" data-unit="truck">
+      <div class="unit-icon">🚛</div>
+      <div class="unit-name">Camión</div>
+      <div class="unit-cost">💎 8</div>
+      <div class="turret-count" id="truck-count">1/2</div>
+    </div>
+    <div class="unit-card" data-unit="drone">
+      <div class="unit-icon">🛸</div>
+      <div class="unit-name">Drone</div>
+      <div class="unit-cost">💎 5</div>
+    </div>
+  </div>
+
+  <div id="message"></div>
+  <button id="restart-btn">Reiniciar partida</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============ SETUP ESCENA ============
+const container = document.getElementById('game-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 40, 80);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 18, 22);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+// Luces para toon shading
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambient);
+const sun = new THREE.DirectionalLight(0xfff4d6, 1.2);
+sun.position.set(10, 20, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
+sun.shadow.camera.top = 25; sun.shadow.camera.bottom = -25;
+scene.add(sun);
+
+// ============ TOON MATERIAL HELPER ============
+// Gradiente de 3 tonos para look toon
+const gradientMap = (() => {
+  const colors = new Uint8Array([80, 160, 255]);
+  const tex = new THREE.DataTexture(colors, colors.length, 1, THREE.RedFormat);
+  tex.needsUpdate = true;
+  return tex;
+})();
+
+function toonMat(hex) {
+  return new THREE.MeshToonMaterial({ color: hex, gradientMap });
+}
+
+// ============ TERRENO ============
+// Carril principal
+const laneLength = 28;
+const laneWidth = 4;
+const groundGeo = new THREE.BoxGeometry(40, 0.5, 14);
+const ground = new THREE.Mesh(groundGeo, toonMat(0x7cb342));
+ground.position.y = -0.25;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Carril de tierra (camino)
+const laneGeo = new THREE.BoxGeometry(laneLength, 0.1, laneWidth);
+const lane = new THREE.Mesh(laneGeo, toonMat(0xc9a47a));
+lane.position.y = 0.05;
+lane.receiveShadow = true;
+scene.add(lane);
+
+// ============ TORRES ============
+function createTower(x, color) {
+  const group = new THREE.Group();
+  // Base
+  const base = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 3), toonMat(0x888888));
+  base.position.y = 0.5;
+  base.castShadow = true; base.receiveShadow = true;
+  group.add(base);
+  // Cuerpo
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 3, 8), toonMat(color));
+  body.position.y = 2.5;
+  body.castShadow = true; body.receiveShadow = true;
+  group.add(body);
+  // Techo
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(1.5, 1.5, 8), toonMat(0x5d3a1a));
+  roof.position.y = 4.75;
+  roof.castShadow = true;
+  group.add(roof);
+  // Bandera
+  const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), toonMat(0x333333));
+  flagPole.position.y = 6.25;
+  group.add(flagPole);
+  const flag = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.05), toonMat(color));
+  flag.position.set(0.4, 6.5, 0);
+  group.add(flag);
+
+  group.position.x = x;
+  return group;
+}
+
+const playerTower = createTower(-laneLength/2, 0x4a90e2);
+const enemyTower = createTower(laneLength/2, 0xe24a4a);
+scene.add(playerTower);
+scene.add(enemyTower);
+
+// ============ ZONAS DE MINERAL ============
+const mineralBlocks = []; // bloques visibles en el suelo
+
+function createMineralBlock(x, z) {
+  const geo = new THREE.OctahedronGeometry(0.35, 0);
+  const mat = toonMat(0x6ee7ff);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, 0.4, z);
+  mesh.castShadow = true;
+  mesh.userData.spinSpeed = 0.02 + Math.random() * 0.02;
+  scene.add(mesh);
+  return mesh;
+}
+
+function spawnMineralsFor(side) {
+  // side: -1 player, +1 enemy
+  // Ambos lados al frente (z positivo) para ser visibles a la cámara
+  const baseX = side * (laneLength/2 + 1);
+  const blocks = [];
+  for (let i = 0; i < 6; i++) {
+    const x = baseX + (Math.random() - 0.5) * 3;
+    const z = 5 + Math.random() * 2;
+    blocks.push(createMineralBlock(x, z));
+  }
+  return blocks;
+}
+
+let playerMinerals = spawnMineralsFor(-1);
+let enemyMinerals = spawnMineralsFor(+1);
+
+// ============ CAMIONCITOS ============
+function createTruck(color) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.6, 0.9), toonMat(color));
+  body.position.y = 0.5;
+  body.castShadow = true;
+  g.add(body);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.8), toonMat(0xffffff));
+  cabin.position.set(0.45, 0.95, 0);
+  cabin.castShadow = true;
+  g.add(cabin);
+  // Ruedas
+  for (let i = 0; i < 4; i++) {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.15, 8), toonMat(0x222222));
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(i < 2 ? 0.4 : -0.4, 0.2, i % 2 === 0 ? 0.4 : -0.4);
+    g.add(wheel);
+  }
+  // Carga (caja indicadora)
+  const cargo = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.6), toonMat(0x6ee7ff));
+  cargo.position.set(-0.3, 0.95, 0);
+  cargo.visible = false;
+  cargo.castShadow = true;
+  g.add(cargo);
+  g.userData.cargo = cargo;
+  return g;
+}
+
+// La función spawnTruckFor crea un camión y lo agrega al STATE.trucks
+function spawnTruckFor(side, zPos = 5) {
+  const color = side === -1 ? 0x4a90e2 : 0xe24a4a;
+  const truck = createTruck(color);
+  const baseX = side === -1 ? -laneLength/2 : laneLength/2;
+  truck.position.set(baseX, 0, zPos);
+  truck.userData = {
+    ...truck.userData,
+    side,
+    state: 'toMineral',
+    target: null,
+    speed: 3,
+    isPlayer: side === -1,
+  };
+  scene.add(truck);
+  return truck;
+}
+
+// ============ ESTADO DEL JUEGO ============
+const STATE = {
+  player: { mineral: 0, towerHP: 100, towerMax: 100, towerAttackCD: 0 },
+  enemy: { mineral: 0, towerHP: 100, towerMax: 100, towerAttackCD: 0 },
+  units: [], // {mesh, side, type, hp, maxHp, dmg, range, speed, attackCD, target, flying}
+  projectiles: [],
+  selectedUnit: null,
+  gameOver: false,
+  enemyAITimer: 0,
+  enemyTurretTimer: 0,
+  enemyTruckTimer: 0,
+  turrets: [],
+  trucks: [], // todos los camiones (incluyendo iniciales)
+};
+
+const TURRET_DEF = {
+  cost: 10, hp: 120, dmg: 10, range: 6, attackInterval: 0.9,
+};
+
+const UNIT_DEFS = {
+  melee:  { cost: 3, hp: 60,  dmg: 12, range: 1.2, speed: 2.2, attackInterval: 0.8, color: 0xffd700, scale: 0.9, count: 2, flying: false },
+  ranged: { cost: 4, hp: 35,  dmg: 8,  range: 5.5, speed: 2.0, attackInterval: 1.0, color: 0x9c27b0, scale: 0.85, count: 2, flying: false, canHitAir: true },
+  tank:   { cost: 6, hp: 220, dmg: 6,  range: 1.3, speed: 1.4, attackInterval: 1.2, color: 0x607d8b, scale: 1.2, count: 1, flying: false },
+  drone:  { cost: 10, hp: 45,  dmg: 7,  range: 10, speed: 2.4, attackInterval: 0.9, color: 0x00bcd4, scale: 0.7, count: 1, flying: true, canHitAir: true, hoverY: 2.8 },
+};
+
+const TRUCK_DEF = { cost: 8, maxPerSide: 2 };
+
+// La torre base también ataca: más daño que la torreta, alcance medio
+const BASE_TOWER_DEF = { dmg: 14, range: 5.5, attackInterval: 1.0 };
+
+// Crear camiones iniciales (1 por lado)
+STATE.trucks.push(spawnTruckFor(-1, 5));
+STATE.trucks.push(spawnTruckFor(+1, 5));
+
+function countTrucks(side) {
+  return STATE.trucks.filter(t => t.userData.side === side).length;
+}
+
+// ============ CREAR UNIDADES ============
+function createUnitMesh(type, side) {
+  const def = UNIT_DEFS[type];
+  const g = new THREE.Group();
+  const baseColor = side === -1 ? 0x4a90e2 : 0xe24a4a;
+
+  if (type === 'drone') {
+    // Drone: cuerpo bajo de disco, 4 hélices, indicador del color del lado
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.4, 0.25, 8), toonMat(0x333333));
+    body.castShadow = true;
+    g.add(body);
+    // anillo de color (lado)
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.07, 6, 16), toonMat(baseColor));
+    ring.rotation.x = Math.PI / 2;
+    g.add(ring);
+    // hélices
+    const rotorGroup = new THREE.Group();
+    for (let i = 0; i < 4; i++) {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.7), toonMat(0x222222));
+      const angle = (i / 4) * Math.PI * 2;
+      arm.position.set(Math.cos(angle) * 0.45, 0.15, Math.sin(angle) * 0.45);
+      arm.rotation.y = -angle;
+      rotorGroup.add(arm);
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 0.45), toonMat(0x888888));
+      blade.position.copy(arm.position);
+      blade.position.y += 0.05;
+      rotorGroup.add(blade);
+    }
+    g.add(rotorGroup);
+    g.userData.rotorGroup = rotorGroup;
+    // pequeño cañón abajo
+    const gun = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.3), toonMat(0xffaa00));
+    gun.position.y = -0.2;
+    g.add(gun);
+
+    // Barra HP
+    const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.1), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    hpBg.position.y = 0.8;
+    g.add(hpBg);
+    const hpFill = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.07), new THREE.MeshBasicMaterial({ color: side === -1 ? 0x6ab0ff : 0xff6a6a }));
+    hpFill.position.set(0, 0.8, 0.01);
+    g.add(hpFill);
+    g.userData.hpFill = hpFill;
+    g.userData.hpBg = hpBg;
+    return g;
+  }
+
+  // Cuerpo
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.35 * def.scale, 0.7 * def.scale, 4, 8),
+    toonMat(baseColor)
+  );
+  body.position.y = 0.7 * def.scale;
+  body.castShadow = true;
+  g.add(body);
+
+  // Cabeza
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28 * def.scale, 12, 12),
+    toonMat(0xf5d0a0)
+  );
+  head.position.y = 1.5 * def.scale;
+  head.castShadow = true;
+  g.add(head);
+
+  // Sombrero/arma identificador
+  let accessory;
+  if (type === 'melee') {
+    // espada
+    accessory = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.08), toonMat(0xcccccc));
+    accessory.position.set(0.4 * def.scale, 1.0 * def.scale, 0);
+  } else if (type === 'ranged') {
+    // arco
+    accessory = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 6, 12, Math.PI), toonMat(0x6d4c1f));
+    accessory.position.set(0.35 * def.scale, 1.0 * def.scale, 0);
+    accessory.rotation.z = Math.PI / 2;
+  } else {
+    // escudo
+    accessory = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.7, 0.5), toonMat(0xffd700));
+    accessory.position.set(0.4 * def.scale, 0.9 * def.scale, 0);
+  }
+  accessory.castShadow = true;
+  g.add(accessory);
+
+  // Barra HP (sprite)
+  const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.1), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  hpBg.position.y = 2.2 * def.scale;
+  g.add(hpBg);
+  const hpFill = new THREE.Mesh(new THREE.PlaneGeometry(0.76, 0.07), new THREE.MeshBasicMaterial({ color: side === -1 ? 0x6ab0ff : 0xff6a6a }));
+  hpFill.position.set(0, 2.2 * def.scale, 0.01);
+  g.add(hpFill);
+  g.userData.hpFill = hpFill;
+  g.userData.hpBg = hpBg;
+
+  return g;
+}
+
+function spawnUnit(type, side, xPos, zOffset = 0) {
+  const def = UNIT_DEFS[type];
+  const mesh = createUnitMesh(type, side);
+  const y = def.flying ? def.hoverY : 0;
+  mesh.position.set(xPos, y, zOffset);
+  scene.add(mesh);
+  const unit = {
+    mesh, side, type,
+    hp: def.hp, maxHp: def.hp,
+    dmg: def.dmg, range: def.range,
+    speed: def.speed,
+    attackInterval: def.attackInterval,
+    attackCD: 0,
+    bobPhase: Math.random() * Math.PI * 2,
+    flying: !!def.flying,
+    canHitAir: !!def.canHitAir,
+    hoverY: def.hoverY || 0,
+  };
+  STATE.units.push(unit);
+  return unit;
+}
+
+// Helper: spawn count unidades en posiciones separadas en Z
+function spawnUnitGroup(type, side, xPos) {
+  const def = UNIT_DEFS[type];
+  const count = def.count || 1;
+  if (count === 1) {
+    spawnUnit(type, side, xPos, 0);
+  } else {
+    // separar en Z
+    const spacing = 1.2;
+    for (let i = 0; i < count; i++) {
+      const z = (i - (count - 1) / 2) * spacing;
+      spawnUnit(type, side, xPos, z);
+    }
+  }
+}
+
+// ============ TORRETAS ============
+function createTurretMesh(side) {
+  const g = new THREE.Group();
+  const baseColor = side === -1 ? 0x4a90e2 : 0xe24a4a;
+  // Base de piedra
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.0, 0.6, 8), toonMat(0x888888));
+  base.position.y = 0.3;
+  base.castShadow = true; base.receiveShadow = true;
+  g.add(base);
+  // Cuerpo
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 1.6, 8), toonMat(baseColor));
+  body.position.y = 1.4;
+  body.castShadow = true;
+  g.add(body);
+  // Torreta giratoria
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.9), toonMat(0x444444));
+  head.position.y = 2.45;
+  head.castShadow = true;
+  g.add(head);
+  // Cañón
+  const cannon = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.0, 8), toonMat(0x222222));
+  cannon.rotation.z = Math.PI / 2;
+  cannon.position.set(0.6, 2.45, 0);
+  head.add(cannon);
+  g.userData.head = head;
+  // Barra HP
+  const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.14), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  hpBg.position.y = 3.2;
+  g.add(hpBg);
+  const hpFill = new THREE.Mesh(new THREE.PlaneGeometry(1.34, 0.1), new THREE.MeshBasicMaterial({ color: side === -1 ? 0x6ab0ff : 0xff6a6a }));
+  hpFill.position.set(0, 3.2, 0.01);
+  g.add(hpFill);
+  g.userData.hpFill = hpFill;
+  return g;
+}
+
+function spawnTurret(side, xPos) {
+  const mesh = createTurretMesh(side);
+  // posición: cerca de la torre, en una fila defensiva
+  mesh.position.set(xPos, 0, 0);
+  scene.add(mesh);
+  const turret = {
+    mesh, side,
+    hp: TURRET_DEF.hp, maxHp: TURRET_DEF.hp,
+    dmg: TURRET_DEF.dmg, range: TURRET_DEF.range,
+    attackInterval: TURRET_DEF.attackInterval,
+    attackCD: 0,
+  };
+  STATE.turrets.push(turret);
+  return turret;
+}
+
+function countTurrets(side) {
+  return STATE.turrets.filter(t => t.side === side).length;
+}
+
+function updateTurret(turret, dt) {
+  turret.attackCD -= dt;
+  // buscar enemigo más cercano en rango
+  let best = null;
+  let minDist = Infinity;
+  for (const u of STATE.units) {
+    if (u.side === turret.side) continue;
+    const d = turret.mesh.position.distanceTo(u.mesh.position);
+    if (d < minDist && d <= turret.range) { minDist = d; best = u; }
+  }
+  if (best) {
+    // rotar cabeza hacia el target
+    const dir = new THREE.Vector3().subVectors(best.mesh.position, turret.mesh.position);
+    const angle = Math.atan2(dir.z, dir.x);
+    turret.mesh.userData.head.rotation.y = -angle;
+    if (turret.attackCD <= 0) {
+      turret.attackCD = turret.attackInterval;
+      // proyectil
+      const from = turret.mesh.position.clone();
+      from.y = 2.45;
+      const to = best.mesh.position.clone();
+      to.y = 1.5;
+      const proj = {
+        mesh: null, dmg: turret.dmg, speed: 18,
+        targetPos: to, targetKind: 'unit', targetRef: best,
+      };
+      const pgeo = new THREE.SphereGeometry(0.18, 8, 8);
+      proj.mesh = new THREE.Mesh(pgeo, toonMat(0xff5722));
+      proj.mesh.position.copy(from);
+      scene.add(proj.mesh);
+      STATE.projectiles.push(proj);
+    }
+  }
+  // actualizar barra HP
+  const hpRatio = Math.max(0, turret.hp / turret.maxHp);
+  turret.mesh.userData.hpFill.scale.x = hpRatio;
+  turret.mesh.userData.hpFill.position.x = -(1 - hpRatio) * 0.67;
+}
+
+function cleanupDeadTurrets() {
+  for (let i = STATE.turrets.length - 1; i >= 0; i--) {
+    const t = STATE.turrets[i];
+    if (t.hp <= 0) {
+      scene.remove(t.mesh);
+      STATE.turrets.splice(i, 1);
+    }
+  }
+}
+
+// La torre base dispara a enemigos en rango (cualquier unidad enemiga, voladora o no)
+function updateBaseTower(side, dt) {
+  const player = side === -1 ? STATE.player : STATE.enemy;
+  const tower = side === -1 ? playerTower : enemyTower;
+  player.towerAttackCD -= dt;
+  // buscar enemigo más cercano
+  let best = null;
+  let minDist = Infinity;
+  const towerPos2 = tower.position.clone();
+  for (const u of STATE.units) {
+    if (u.side === side) continue;
+    const d = u.mesh.position.distanceTo(towerPos2);
+    if (d < minDist && d <= BASE_TOWER_DEF.range) { minDist = d; best = u; }
+  }
+  if (best && player.towerAttackCD <= 0) {
+    player.towerAttackCD = BASE_TOWER_DEF.attackInterval;
+    const from = tower.position.clone();
+    from.y = 4.5;
+    const to = best.mesh.position.clone();
+    const proj = {
+      mesh: null, dmg: BASE_TOWER_DEF.dmg, speed: 20,
+      targetPos: to, targetKind: 'unit', targetRef: best,
+    };
+    proj.mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), toonMat(0xff1744));
+    proj.mesh.position.copy(from);
+    scene.add(proj.mesh);
+    STATE.projectiles.push(proj);
+  }
+}
+
+// Posiciones válidas de torreta por lado (varios slots avanzando hacia el centro)
+function getTurretSlots(side) {
+  // Para el lado del jugador (-1), slots avanzan de izquierda a derecha (x más positivo = más cerca del enemigo)
+  // Para el enemigo (+1), slots avanzan de derecha a izquierda (x más negativo = más cerca del jugador)
+  const slots = [];
+  // 5 columnas a lo largo del carril, 2 filas (arriba/abajo del carril) = 10 slots por lado
+  const startX = side === -1 ? -laneLength/2 + 4 : laneLength/2 - 4;
+  const step = side === -1 ? 2.4 : -2.4;
+  for (let col = 0; col < 5; col++) {
+    const x = startX + step * col;
+    // No invadir el lado contrario
+    if (side === -1 && x > -1) continue;
+    if (side === +1 && x < 1) continue;
+    slots.push({ x, z: -3.5 });
+    slots.push({ x, z: 3.5 });
+  }
+  return slots;
+}
+
+function findFreeTurretSlot(side) {
+  const slots = getTurretSlots(side);
+  for (const slot of slots) {
+    const occupied = STATE.turrets.some(t =>
+      t.side === side &&
+      Math.abs(t.mesh.position.x - slot.x) < 0.5 &&
+      Math.abs(t.mesh.position.z - slot.z) < 0.5
+    );
+    if (!occupied) return slot;
+  }
+  return null;
+}
+
+// ============ PROJECTILES ============
+function spawnProjectile(from, to, dmg) {
+  const geo = new THREE.SphereGeometry(0.12, 8, 8);
+  const mat = toonMat(0xffaa00);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(from);
+  scene.add(mesh);
+  STATE.projectiles.push({ mesh, target: to.clone(), dmg, speed: 12, targetUnit: null });
+}
+
+// ============ INPUT ============
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const laneClickPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(laneLength, laneWidth),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+laneClickPlane.rotation.x = -Math.PI / 2;
+laneClickPlane.position.y = 0.1;
+scene.add(laneClickPlane);
+
+// Indicador de despliegue
+const placeIndicator = new THREE.Mesh(
+  new THREE.RingGeometry(0.6, 0.8, 16),
+  new THREE.MeshBasicMaterial({ color: 0x6ee7ff, side: THREE.DoubleSide, transparent: true, opacity: 0.6 })
+);
+placeIndicator.rotation.x = -Math.PI / 2;
+placeIndicator.position.y = 0.15;
+placeIndicator.visible = false;
+scene.add(placeIndicator);
+
+// Indicadores de slots de torreta (todos los slots del lado del jugador)
+const turretSlotIndicators = [];
+for (const slot of getTurretSlots(-1)) {
+  const ind = new THREE.Mesh(
+    new THREE.RingGeometry(0.7, 0.9, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffd700, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
+  );
+  ind.rotation.x = -Math.PI / 2;
+  ind.position.set(slot.x, 0.15, slot.z);
+  ind.visible = false;
+  scene.add(ind);
+  turretSlotIndicators.push({ mesh: ind, slot });
+}
+
+function updateTurretSlotIndicators() {
+  const showing = STATE.selectedUnit === 'turret';
+  for (const { mesh, slot } of turretSlotIndicators) {
+    const occupied = STATE.turrets.some(t =>
+      t.side === -1 &&
+      Math.abs(t.mesh.position.x - slot.x) < 0.5 &&
+      Math.abs(t.mesh.position.z - slot.z) < 0.5
+    );
+    mesh.visible = showing && !occupied;
+  }
+}
+
+window.addEventListener('mousemove', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  if (STATE.selectedUnit && STATE.selectedUnit !== 'turret' && !STATE.gameOver) {
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObject(laneClickPlane);
+    if (hits.length > 0) {
+      const p = hits[0].point;
+      // solo en mitad del jugador
+      if (p.x < 0) {
+        placeIndicator.position.set(p.x, 0.15, 0);
+        placeIndicator.visible = true;
+      } else {
+        placeIndicator.visible = false;
+      }
+    }
+  } else {
+    placeIndicator.visible = false;
+  }
+});
+
+window.addEventListener('click', (e) => {
+  if (STATE.gameOver) return;
+  if (!STATE.selectedUnit) return;
+
+  // Caso torreta: clic en cualquier lado coloca en el primer slot libre del jugador
+  if (STATE.selectedUnit === 'turret') {
+    if (STATE.player.mineral < TURRET_DEF.cost) return;
+    const slot = findFreeTurretSlot(-1);
+    if (!slot) return; // no quedan slots
+    STATE.player.mineral -= TURRET_DEF.cost;
+    const t = spawnTurret(-1, slot.x);
+    t.mesh.position.z = slot.z;
+    // si ya no quedan slots, deselecciona
+    if (!findFreeTurretSlot(-1)) {
+      document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('selected'));
+      STATE.selectedUnit = null;
+      placeIndicator.visible = false;
+    }
+    updateHUD();
+    return;
+  }
+
+  // Caso camión: clic en cualquier lado, sale junto a la base
+  if (STATE.selectedUnit === 'truck') {
+    if (STATE.player.mineral < TRUCK_DEF.cost) return;
+    if (countTrucks(-1) >= TRUCK_DEF.maxPerSide) return;
+    STATE.player.mineral -= TRUCK_DEF.cost;
+    // segundo camión arranca en z negativo para diferenciarse
+    const zStart = countTrucks(-1) === 1 ? 6 : 4;
+    STATE.trucks.push(spawnTruckFor(-1, zStart));
+    document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('selected'));
+    STATE.selectedUnit = null;
+    updateHUD();
+    return;
+  }
+
+  // Caso unidad normal (melee, ranged, tank, drone)
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(laneClickPlane);
+  if (hits.length === 0) return;
+  const p = hits[0].point;
+  if (p.x >= 0) return; // solo lado jugador
+  const def = UNIT_DEFS[STATE.selectedUnit];
+  if (STATE.player.mineral < def.cost) return;
+  STATE.player.mineral -= def.cost;
+  spawnUnitGroup(STATE.selectedUnit, -1, p.x);
+  updateHUD();
+});
+
+// Botones de unidades
+document.querySelectorAll('.unit-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const unit = card.dataset.unit;
+    if (unit === 'turret') {
+      if (STATE.player.mineral < TURRET_DEF.cost) return;
+      if (!findFreeTurretSlot(-1)) return; // no quedan slots
+    } else if (unit === 'truck') {
+      if (STATE.player.mineral < TRUCK_DEF.cost) return;
+      if (countTrucks(-1) >= TRUCK_DEF.maxPerSide) return;
+    } else {
+      const def = UNIT_DEFS[unit];
+      if (STATE.player.mineral < def.cost) return;
+    }
+    document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    STATE.selectedUnit = unit;
+  });
+});
+
+// ============ LÓGICA DE TRUCK ============
+function findClosestMineral(truck) {
+  const minerals = truck.userData.side === -1 ? playerMinerals : enemyMinerals;
+  if (minerals.length === 0) return null;
+  let closest = null;
+  let minDist = Infinity;
+  for (const m of minerals) {
+    const d = truck.position.distanceTo(m.position);
+    if (d < minDist) { minDist = d; closest = m; }
+  }
+  return closest;
+}
+
+function updateTruck(truck, dt) {
+  const ud = truck.userData;
+  const minerals = ud.side === -1 ? playerMinerals : enemyMinerals;
+  const tower = ud.side === -1 ? playerTower : enemyTower;
+
+  if (ud.state === 'toMineral') {
+    if (!ud.target || !minerals.includes(ud.target)) {
+      ud.target = findClosestMineral(truck);
+    }
+    if (ud.target) {
+      const dir = new THREE.Vector3().subVectors(ud.target.position, truck.position);
+      dir.y = 0;
+      const dist = dir.length();
+      if (dist < 0.5) {
+        // recoger
+        scene.remove(ud.target);
+        const idx = minerals.indexOf(ud.target);
+        if (idx >= 0) minerals.splice(idx, 1);
+        ud.target = null;
+        ud.state = 'returning';
+        ud.cargo.visible = true;
+        // respawn mineral después
+        setTimeout(() => {
+          const baseX = ud.side * (laneLength/2 + 1);
+          const x = baseX + (Math.random() - 0.5) * 3;
+          const z = 5 + Math.random() * 2;
+          const m = createMineralBlock(x, z);
+          if (ud.side === -1) playerMinerals.push(m);
+          else enemyMinerals.push(m);
+        }, 3000);
+      } else {
+        dir.normalize();
+        truck.position.addScaledVector(dir, ud.speed * dt);
+        truck.lookAt(truck.position.x + dir.x, truck.position.y, truck.position.z + dir.z);
+      }
+    }
+  } else if (ud.state === 'returning') {
+    const dir = new THREE.Vector3().subVectors(tower.position, truck.position);
+    dir.y = 0;
+    const dist = dir.length();
+    if (dist < 1.5) {
+      // entregar +2 mineral
+      if (ud.side === -1) STATE.player.mineral = Math.min(20, STATE.player.mineral + 2);
+      else STATE.enemy.mineral = Math.min(20, STATE.enemy.mineral + 2);
+      ud.cargo.visible = false;
+      ud.state = 'toMineral';
+      updateHUD();
+    } else {
+      dir.normalize();
+      truck.position.addScaledVector(dir, ud.speed * dt);
+      truck.lookAt(truck.position.x + dir.x, truck.position.y, truck.position.z + dir.z);
+    }
+  }
+}
+
+// ============ LÓGICA DE COMBATE ============
+function findTargetFor(unit) {
+  // Prioridad:
+  // 1. Unidad enemiga cercana (en rango de ataque + un margen pequeño)
+  // 2. Torreta enemiga
+  // 3. Torre base enemiga
+  // Regla de aire: si el target es flying, solo lo ataca quien tenga canHitAir
+  const PROXIMITY = unit.range + 1.5;
+
+  // 1. unidad enemiga muy cerca (filtrar voladores si no puede pegarles)
+  let closestUnit = null;
+  let closestUnitDist = Infinity;
+  for (const other of STATE.units) {
+    if (other.side === unit.side) continue;
+    if (other.flying && !unit.canHitAir) continue;
+    const d = unit.mesh.position.distanceTo(other.mesh.position);
+    if (d < closestUnitDist) { closestUnitDist = d; closestUnit = other; }
+  }
+  if (closestUnit && closestUnitDist <= PROXIMITY) {
+    return { kind: 'unit', ref: closestUnit, dist: closestUnitDist };
+  }
+
+  // 2. torreta enemiga
+  let bestTurret = null;
+  let bestTurretDist = Infinity;
+  for (const t of STATE.turrets) {
+    if (t.side === unit.side) continue;
+    const d = unit.mesh.position.distanceTo(t.mesh.position);
+    if (d < bestTurretDist) { bestTurretDist = d; bestTurret = t; }
+  }
+  if (bestTurret) {
+    return { kind: 'turret', ref: bestTurret, dist: bestTurretDist };
+  }
+
+  // 3. torre base enemiga
+  const enemyT = unit.side === -1 ? enemyTower : playerTower;
+  const towerPos = enemyT.position.clone();
+  towerPos.y = unit.mesh.position.y;
+  const dT = unit.mesh.position.distanceTo(towerPos);
+
+  if (closestUnit && closestUnitDist < dT) {
+    return { kind: 'unit', ref: closestUnit, dist: closestUnitDist };
+  }
+  return { kind: 'tower', ref: enemyT, dist: dT, pos: towerPos };
+}
+
+function updateUnit(unit, dt) {
+  unit.attackCD -= dt;
+  unit.bobPhase += dt * 8;
+
+  const target = findTargetFor(unit);
+  if (!target) return;
+
+  let targetPos;
+  if (target.kind === 'tower') targetPos = target.pos;
+  else targetPos = target.ref.mesh.position;
+
+  // Para flying units, ignoramos diferencias en Y para el cálculo de distancia horizontal
+  const dir = new THREE.Vector3().subVectors(targetPos, unit.mesh.position);
+  dir.y = 0;
+  const dist = dir.length();
+
+  if (dist > unit.range) {
+    // avanzar
+    dir.normalize();
+    unit.mesh.position.addScaledVector(dir, unit.speed * dt);
+    unit.mesh.lookAt(unit.mesh.position.x + dir.x, unit.mesh.position.y, unit.mesh.position.z + dir.z);
+    if (unit.flying) {
+      // hover bobbing arriba
+      unit.mesh.position.y = unit.hoverY + Math.sin(unit.bobPhase * 0.5) * 0.15;
+      if (unit.mesh.userData.rotorGroup) {
+        unit.mesh.userData.rotorGroup.rotation.y += dt * 30;
+      }
+    } else {
+      // bobbing al caminar
+      unit.mesh.position.y = Math.abs(Math.sin(unit.bobPhase)) * 0.08;
+    }
+  } else {
+    // atacar
+    if (unit.flying) {
+      unit.mesh.position.y = unit.hoverY + Math.sin(unit.bobPhase * 0.5) * 0.15;
+      if (unit.mesh.userData.rotorGroup) {
+        unit.mesh.userData.rotorGroup.rotation.y += dt * 30;
+      }
+    } else {
+      unit.mesh.position.y = 0;
+    }
+    if (unit.attackCD <= 0) {
+      unit.attackCD = unit.attackInterval;
+      if (unit.type === 'ranged') {
+        const from = unit.mesh.position.clone();
+        from.y = 1.5;
+        const to = targetPos.clone();
+        to.y = 1.5;
+        const proj = { mesh: null, dmg: unit.dmg, speed: 15 };
+        const geo = new THREE.SphereGeometry(0.15, 8, 8);
+        const mat = toonMat(0xffeb3b);
+        proj.mesh = new THREE.Mesh(geo, mat);
+        proj.mesh.position.copy(from);
+        proj.targetPos = to;
+        proj.targetKind = target.kind;
+        proj.targetRef = target.ref;
+        scene.add(proj.mesh);
+        STATE.projectiles.push(proj);
+      } else if (unit.type === 'drone') {
+        // disparo aéreo (proyectil pequeño cian)
+        const from = unit.mesh.position.clone();
+        const to = targetPos.clone();
+        const proj = { mesh: null, dmg: unit.dmg, speed: 14 };
+        const geo = new THREE.SphereGeometry(0.12, 8, 8);
+        proj.mesh = new THREE.Mesh(geo, toonMat(0x00e5ff));
+        proj.mesh.position.copy(from);
+        proj.targetPos = to;
+        proj.targetKind = target.kind;
+        proj.targetRef = target.ref;
+        scene.add(proj.mesh);
+        STATE.projectiles.push(proj);
+      } else {
+        // melee directo
+        applyDamage(target, unit.dmg);
+        unit.mesh.position.addScaledVector(dir.normalize(), 0.15);
+      }
+    }
+  }
+
+  // actualizar barra HP (offset según si es flying o no)
+  const hpRatio = Math.max(0, unit.hp / unit.maxHp);
+  unit.mesh.userData.hpFill.scale.x = hpRatio;
+  unit.mesh.userData.hpFill.position.x = -(1 - hpRatio) * 0.38;
+}
+
+function applyDamage(target, dmg) {
+  if (target.kind === 'unit') {
+    target.ref.hp -= dmg;
+  } else if (target.kind === 'turret') {
+    target.ref.hp -= dmg;
+  } else {
+    // tower
+    if (target.ref === playerTower) {
+      STATE.player.towerHP -= dmg;
+    } else {
+      STATE.enemy.towerHP -= dmg;
+    }
+    updateHUD();
+  }
+}
+
+function updateProjectiles(dt) {
+  for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
+    const p = STATE.projectiles[i];
+    // homing si el target sigue vivo
+    if (p.targetKind === 'unit' && p.targetRef && p.targetRef.hp > 0) {
+      p.targetPos = p.targetRef.mesh.position.clone();
+      p.targetPos.y = 1.5;
+    } else if (p.targetKind === 'turret' && p.targetRef && p.targetRef.hp > 0) {
+      p.targetPos = p.targetRef.mesh.position.clone();
+      p.targetPos.y = 2.0;
+    }
+    const dir = new THREE.Vector3().subVectors(p.targetPos, p.mesh.position);
+    const dist = dir.length();
+    if (dist < 0.3) {
+      // impacto
+      applyDamage({ kind: p.targetKind, ref: p.targetRef }, p.dmg);
+      scene.remove(p.mesh);
+      STATE.projectiles.splice(i, 1);
+    } else {
+      dir.normalize();
+      p.mesh.position.addScaledVector(dir, p.speed * dt);
+    }
+  }
+}
+
+function cleanupDeadUnits() {
+  for (let i = STATE.units.length - 1; i >= 0; i--) {
+    const u = STATE.units[i];
+    if (u.hp <= 0) {
+      scene.remove(u.mesh);
+      STATE.units.splice(i, 1);
+    }
+  }
+}
+
+// ============ IA ENEMIGA ============
+function updateEnemyAI(dt) {
+  STATE.enemyAITimer -= dt;
+  STATE.enemyTurretTimer -= dt;
+  STATE.enemyTruckTimer -= dt;
+
+  // Decisión de torreta
+  if (STATE.enemyTurretTimer <= 0) {
+    STATE.enemyTurretTimer = 7 + Math.random() * 5;
+    if (STATE.enemy.mineral >= TURRET_DEF.cost) {
+      if (Math.random() < 0.6) {
+        // buscar slot libre del enemigo
+        const slots = getTurretSlots(+1);
+        for (const slot of slots) {
+          const occupied = STATE.turrets.some(t =>
+            t.side === +1 &&
+            Math.abs(t.mesh.position.x - slot.x) < 0.5 &&
+            Math.abs(t.mesh.position.z - slot.z) < 0.5
+          );
+          if (!occupied) {
+            STATE.enemy.mineral -= TURRET_DEF.cost;
+            const t = spawnTurret(+1, slot.x);
+            t.mesh.position.z = slot.z;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Decisión de camión adicional
+  if (STATE.enemyTruckTimer <= 0) {
+    STATE.enemyTruckTimer = 15 + Math.random() * 10;
+    if (STATE.enemy.mineral >= TRUCK_DEF.cost && countTrucks(+1) < TRUCK_DEF.maxPerSide) {
+      if (Math.random() < 0.7) {
+        STATE.enemy.mineral -= TRUCK_DEF.cost;
+        STATE.trucks.push(spawnTruckFor(+1, 4));
+      }
+    }
+  }
+
+  if (STATE.enemyAITimer > 0) return;
+  STATE.enemyAITimer = 2.5 + Math.random() * 2;
+
+  // elegir unidad random que pueda pagar
+  const affordable = Object.entries(UNIT_DEFS).filter(([k, def]) => STATE.enemy.mineral >= def.cost);
+  if (affordable.length === 0) return;
+  const [type] = affordable[Math.floor(Math.random() * affordable.length)];
+  STATE.enemy.mineral -= UNIT_DEFS[type].cost;
+  // spawn en su lado
+  const xPos = laneLength/2 - 2 - Math.random() * 4;
+  spawnUnitGroup(type, +1, xPos);
+}
+
+// ============ HUD ============
+function updateHUD() {
+  document.getElementById('mineral-count').textContent = Math.floor(STATE.player.mineral);
+  document.getElementById('hp-player').style.width = (Math.max(0, STATE.player.towerHP) / STATE.player.towerMax * 100) + '%';
+  document.getElementById('hp-enemy').style.width = (Math.max(0, STATE.enemy.towerHP) / STATE.enemy.towerMax * 100) + '%';
+  // slots libres
+  const totalSlots = getTurretSlots(-1).length;
+  const free = totalSlots - countTurrets(-1);
+  document.getElementById('turret-count').textContent = free + ' slots';
+  document.getElementById('truck-count').textContent = countTrucks(-1) + '/' + TRUCK_DEF.maxPerSide;
+
+  // habilitar/deshabilitar cartas
+  document.querySelectorAll('.unit-card').forEach(card => {
+    const unitKey = card.dataset.unit;
+    let disabled = false;
+    if (unitKey === 'turret') {
+      disabled = STATE.player.mineral < TURRET_DEF.cost || !findFreeTurretSlot(-1);
+    } else if (unitKey === 'truck') {
+      disabled = STATE.player.mineral < TRUCK_DEF.cost || countTrucks(-1) >= TRUCK_DEF.maxPerSide;
+    } else {
+      const def = UNIT_DEFS[unitKey];
+      disabled = STATE.player.mineral < def.cost;
+    }
+    if (disabled) {
+      card.classList.add('disabled');
+      if (STATE.selectedUnit === unitKey) {
+        card.classList.remove('selected');
+        STATE.selectedUnit = null;
+      }
+    } else {
+      card.classList.remove('disabled');
+    }
+  });
+}
+
+function showMessage(text, color) {
+  const msg = document.getElementById('message');
+  msg.textContent = text;
+  msg.style.color = color;
+  msg.classList.add('show');
+  document.getElementById('restart-btn').style.display = 'block';
+}
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  location.reload();
+});
+
+// ============ ANIMACIÓN DE MINERAL ============
+function animateMinerals(dt, time) {
+  for (const m of [...playerMinerals, ...enemyMinerals]) {
+    m.rotation.y += m.userData.spinSpeed;
+    m.position.y = 0.4 + Math.sin(time * 2 + m.position.x) * 0.05;
+  }
+}
+
+// ============ MAIN LOOP ============
+const clock = new THREE.Clock();
+let lastTime = 0;
+
+function animate() {
+  if (STATE.gameOver) {
+    renderer.render(scene, camera);
+    return;
+  }
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  const time = clock.getElapsedTime();
+
+  for (const tr of STATE.trucks) updateTruck(tr, dt);
+
+  for (const u of STATE.units) updateUnit(u, dt);
+  for (const t of STATE.turrets) updateTurret(t, dt);
+  updateBaseTower(-1, dt);
+  updateBaseTower(+1, dt);
+  updateProjectiles(dt);
+  cleanupDeadUnits();
+  cleanupDeadTurrets();
+  updateEnemyAI(dt);
+  animateMinerals(dt, time);
+  updateTurretSlotIndicators();
+
+  // check fin
+  if (STATE.player.towerHP <= 0) {
+    STATE.gameOver = true;
+    showMessage('¡Derrota!', '#ff6a6a');
+  } else if (STATE.enemy.towerHP <= 0) {
+    STATE.gameOver = true;
+    showMessage('¡Victoria!', '#6ab0ff');
+  }
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+updateHUD();
+animate();
+</script>
+</body>
+</html>
