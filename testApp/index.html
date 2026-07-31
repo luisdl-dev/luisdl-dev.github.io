@@ -280,6 +280,12 @@ const $ = id => document.getElementById(id);
 const historial = [];
 let temporizador = null, ultimo = '', ultimoMs = 0;
 
+/* Control anti-rebote: evita que un código vecino del mismo papel
+   pise el resultado que se acaba de mostrar. */
+const ENFRIAMIENTO = 1200;   // ms en que se ignora TODO tras una lectura válida
+const REPETIR      = 2;      // veces seguidas que hay que ver el mismo código
+let bloqueoHasta = 0, candidato = '', repeticiones = 0;
+
 function clase(est){
   const e = norm(est);
   if(e === 'ACTIVO') return 'activo';
@@ -344,11 +350,25 @@ function señal(c){
   }catch(e){}
 }
 
+/* Acepta una lectura y abre el enfriamiento. Lo usan el escáner y el teclado. */
+function aceptar(txt){
+  const ahora = Date.now();
+  candidato = ''; repeticiones = 0;
+  ultimo = txt; ultimoMs = ahora;
+  bloqueoHasta = ahora + ENFRIAMIENTO;
+  mostrar(buscar(txt), txt);
+}
+
 function procesar(txt){
   const ahora = Date.now();
-  if(txt === ultimo && ahora - ultimoMs < 2600) return;   // evita relecturas del mismo código
-  ultimo = txt; ultimoMs = ahora;
-  mostrar(buscar(txt), txt);
+  if(ahora < bloqueoHasta) return;                        // enfriamiento tras la última lectura
+  if(txt === ultimo && ahora - ultimoMs < 2600) return;   // mismo código demasiado seguido
+
+  // Debe verse el mismo valor en varios cuadros seguidos antes de darlo por bueno
+  if(txt !== candidato){ candidato = txt; repeticiones = 1; return; }
+  if(++repeticiones < REPETIR) return;
+
+  aceptar(txt);
 }
 
 /* =========================================================================
@@ -385,7 +405,7 @@ async function iniciar(){
     escaneando = true;
     document.body.classList.add('buscando');
     $('btnCam').textContent = 'Detener';
-    $('aviso').textContent = 'Apunta al código de barras';
+    $('aviso').textContent = 'Centra un solo código en la mira';
     bucle();
   }catch(e){
     $('aviso').textContent = e.name === 'NotAllowedError'
@@ -394,21 +414,43 @@ async function iniciar(){
   }
 }
 
+/* Cuando hay varios códigos a la vista (una hoja impresa, un tablero),
+   el detector no garantiza el orden. Nos quedamos con el que está más
+   cerca del centro y descartamos los que caen fuera de la mira. */
+function elegirCentral(hits, v){
+  const cx = v.videoWidth / 2, cy = v.videoHeight / 2;
+  const limX = v.videoWidth * .36, limY = v.videoHeight * .30;
+  let mejor = null, mejorDist = Infinity;
+
+  for(const h of hits){
+    const b = h.boundingBox;
+    if(!b){ if(!mejor){ mejor = h; mejorDist = Infinity; } continue; }
+    const bx = b.x + b.width / 2, by = b.y + b.height / 2;
+    if(Math.abs(bx - cx) > limX || Math.abs(by - cy) > limY) continue;
+    const d = Math.hypot(bx - cx, by - cy);
+    if(d < mejorDist){ mejorDist = d; mejor = h; }
+  }
+  return mejor;
+}
+
 async function bucle(){
   while(escaneando){
     try{
       const v = $('video');
-      if(v.readyState >= 2){
+      if(v.readyState >= 2 && Date.now() >= bloqueoHasta){
         const hits = await detector.detect(v);
-        if(hits.length) procesar(hits[0].rawValue);
+        const elegido = hits.length === 1 ? hits[0] : elegirCentral(hits, v);
+        if(elegido) procesar(elegido.rawValue);
+        else if(hits.length){ candidato = ''; repeticiones = 0; }
       }
     }catch(e){}
-    await new Promise(r => setTimeout(r, 140));
+    await new Promise(r => setTimeout(r, 110));
   }
 }
 
 function detener(){
   escaneando = false;
+  candidato = ''; repeticiones = 0; bloqueoHasta = 0;
   stream?.getTracks().forEach(t => t.stop());
   stream = null; luz = false;
   $('btnLuz').classList.remove('on'); $('btnLuz').hidden = true;
@@ -434,7 +476,7 @@ $('btnBuscar').onclick = () => {
   const t = $('inManual').value.trim();
   if(!t) return;
   $('dlgManual').close();
-  ultimo = ''; procesar(t);
+  aceptar(t);
 };
 $('inManual').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnBuscar').click(); });
 
