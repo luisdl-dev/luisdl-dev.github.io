@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#14161A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Verificador de fotochecks</title>
+<style>
+  :root{
+    --ink:#14161A;
+    --panel:#1D2026;
+    --panel-2:#252932;
+    --line:#333944;
+    --text:#E9ECF1;
+    --muted:#8A93A2;
+
+    --activo:#00C08B;
+    --activo-ink:#04231B;
+    --inactivo:#FF3B4E;
+    --inactivo-ink:#FFFFFF;
+    --desconocido:#FFB020;
+    --desconocido-ink:#2A1C00;
+
+    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+    --r:14px;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--ink);color:var(--text);font-family:var(--sans);
+    display:flex;flex-direction:column;overflow:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ---------- Encabezado ---------- */
+  header{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 14px;border-bottom:1px solid var(--line);flex:0 0 auto;
+  }
+  .marca{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--muted)}
+  .marca b{color:var(--text);font-weight:600}
+  .meta{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .punto{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .punto.on{background:var(--activo);box-shadow:0 0 8px var(--activo)}
+
+  /* ---------- Cámara ---------- */
+  .visor{
+    position:relative;flex:1 1 auto;min-height:120px;background:#000;overflow:hidden;
+    transition:flex-basis .28s ease, min-height .28s ease;
+  }
+  body.con-resultado .visor{flex:0 0 26vh;min-height:0}
+  video{width:100%;height:100%;object-fit:cover;display:block}
+
+  .marco{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  .mira{
+    width:min(78%,420px);aspect-ratio:5/3;position:relative;
+    transition:transform .2s ease, opacity .2s ease;
+  }
+  .mira i{position:absolute;width:30px;height:30px;border:3px solid rgba(255,255,255,.92);border-radius:4px}
+  .mira i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0}
+  .mira i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0}
+  .mira i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0}
+  .mira i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0}
+  body.buscando .mira{animation:respira 1.7s ease-in-out infinite}
+  @keyframes respira{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(.965);opacity:1}}
+
+  .aviso{
+    position:absolute;left:0;right:0;bottom:0;padding:10px 14px;
+    background:linear-gradient(transparent,rgba(0,0,0,.75));
+    font-family:var(--mono);font-size:11px;color:#D7DCE4;text-align:center;
+  }
+
+  /* ---------- Resultado ---------- */
+  .resultado{
+    flex:0 0 auto;padding:0 14px;overflow:hidden;
+    max-height:0;opacity:0;transition:max-height .28s ease,opacity .2s ease,padding .28s ease;
+  }
+  body.con-resultado .resultado{max-height:60vh;opacity:1;padding:14px}
+
+  .codigo{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--muted)}
+  .nombre{
+    font-size:clamp(22px,6.4vw,34px);font-weight:800;line-height:1.1;
+    letter-spacing:-.02em;margin:6px 0 10px;overflow-wrap:anywhere;
+  }
+  .dni{font-family:var(--mono);font-size:17px;color:var(--text);opacity:.85}
+  .dni span{color:var(--muted);font-size:12px;letter-spacing:.14em;margin-right:8px}
+
+  .estado{
+    margin-top:14px;border-radius:var(--r);padding:18px 16px;text-align:center;
+    font-weight:800;font-size:clamp(24px,7.5vw,40px);letter-spacing:.06em;line-height:1;
+    animation:entra .22s cubic-bezier(.2,.9,.3,1.4);
+  }
+  @keyframes entra{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .e-activo{background:var(--activo);color:var(--activo-ink)}
+  .e-inactivo{background:var(--inactivo);color:var(--inactivo-ink)}
+  .e-desconocido{background:var(--desconocido);color:var(--desconocido-ink)}
+  .estado small{display:block;font-size:12px;letter-spacing:.16em;font-weight:600;opacity:.72;margin-top:8px;font-family:var(--mono)}
+
+  /* ---------- Barra inferior ---------- */
+  footer{
+    flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    padding:10px 12px;border-top:1px solid var(--line);background:var(--panel);
+  }
+  button{
+    font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+    padding:11px 13px;cursor:pointer;transition:background .15s ease;
+  }
+  button:active{background:#30364180}
+  button:focus-visible{outline:2px solid var(--activo);outline-offset:2px}
+  button.on{background:var(--text);color:var(--ink);border-color:var(--text)}
+  .crece{flex:1}
+  .conteo{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;line-height:1.35}
+  .conteo b{color:var(--text)}
+
+  /* ---------- Panel manual / historial ---------- */
+  dialog{
+    border:1px solid var(--line);background:var(--panel);color:var(--text);
+    border-radius:var(--r);padding:18px;width:min(92vw,420px);
+  }
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog h2{margin:0 0 12px;font-size:15px;letter-spacing:.02em}
+  input[type=text]{
+    width:100%;font-family:var(--mono);font-size:19px;padding:12px;
+    background:var(--ink);color:var(--text);border:1px solid var(--line);border-radius:10px;
+  }
+  .filas{max-height:52vh;overflow:auto;margin:0;padding:0;list-style:none}
+  .filas li{
+    display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .filas li:last-child{border-bottom:0}
+  .pill{
+    font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;
+    padding:4px 7px;border-radius:6px;flex:0 0 auto;
+  }
+  .p-activo{background:var(--activo);color:var(--activo-ink)}
+  .p-inactivo{background:var(--inactivo);color:var(--inactivo-ink)}
+  .p-desconocido{background:var(--desconocido);color:var(--desconocido-ink)}
+  .hora{font-family:var(--mono);color:var(--muted);font-size:11px;margin-left:auto;flex:0 0 auto}
+  .vacio{color:var(--muted);font-size:13px;padding:18px 0;text-align:center}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body class="buscando">
+
+<header>
+  <div class="marca">FOTOCHECK · <b>VERIFICADOR</b></div>
+  <div class="meta"><span class="punto" id="led"></span><span id="infoBD">—</span></div>
+</header>
+
+<div class="visor">
+  <video id="video" playsinline muted autoplay></video>
+  <div class="marco"><div class="mira"><i></i><i></i><i></i><i></i></div></div>
+  <div class="aviso" id="aviso">Apunta al código de barras</div>
+</div>
+
+<section class="resultado" id="resultado" aria-live="polite"></section>
+
+<footer>
+  <button id="btnCam" class="crece">Detener</button>
+  <button id="btnLuz" hidden>Luz</button>
+  <button id="btnManual">Teclear</button>
+  <button id="btnLista">Lista</button>
+  <div class="conteo">
+    <div><b id="cActivo">0</b> activos</div>
+    <div><b id="cOtro">0</b> otros</div>
+  </div>
+</footer>
+
+<dialog id="dlgManual">
+  <h2>Ingresar código</h2>
+  <input type="text" id="inManual" inputmode="text" autocomplete="off" placeholder="Ej. E00123">
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="crece" id="btnBuscar">Buscar</button>
+    <button id="btnCerrarManual">Cancelar</button>
+  </div>
+</dialog>
+
+<dialog id="dlgLista">
+  <h2>Escaneos de esta sesión</h2>
+  <ul class="filas" id="filas"></ul>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="crece" id="btnCSV">Descargar CSV</button>
+    <button id="btnCerrarLista">Cerrar</button>
+  </div>
+</dialog>
+
+<script>
+/* =========================================================================
+   1. ORIGEN DE DATOS
+   Hoy: lista embebida (generada por gen_datos.py desde el Excel).
+   Mañana: cambia modo a 'url' y apunta a un JSON publicado por
+   Power Automate / SharePoint / OneDrive. El resto de la app no cambia.
+   ========================================================================= */
+const FUENTE = {
+  modo: 'embebido',        // 'embebido' | 'url'
+  url : '',                // p. ej. 'https://.../datos.json'
+  cache: 'fotocheck_bd_v1' // copia local para trabajar sin señal
+};
+
+// ==== INICIO DATOS (generado por gen_datos.py — no editar a mano) ====
+const DATOS = [
+  {"cod":"E00101","nom":"QUISPE MAMANI, ROSA ELENA","dni":"45678901","est":"ACTIVO"},
+  {"cod":"E00102","nom":"DE LA TORRE RIOS, LUIS ALBERTO","dni":"09876543","est":"ACTIVO"},
+  {"cod":"E00103","nom":"HUAMAN CCASA, PEDRO ANTONIO","dni":"71234567","est":"NO ACTIVO"},
+  {"cod":"E00104","nom":"VARGAS LLOSA, MARIA FERNANDA","dni":"08123456","est":"ACTIVO"},
+  {"cod":"E00105","nom":"CHAVEZ PONCE, JORGE LUIS","dni":"46012378","est":"NO ACTIVO"},
+  {"cod":"E00106","nom":"SALAZAR MENDOZA, ANA LUCIA","dni":"70998877","est":"ACTIVO"},
+  {"cod":"E00107","nom":"ROJAS CABRERA, MIGUEL ANGEL","dni":"41223344","est":"ACTIVO"},
+  {"cod":"E00108","nom":"FLORES ATENCIO, CARMEN ROSA","dni":"06554433","est":"NO ACTIVO"},
+  {"cod":"E00109","nom":"CASTILLO NUÑEZ, DIEGO ARMANDO","dni":"72556677","est":"ACTIVO"},
+  {"cod":"E00110","nom":"MEDINA ZEGARRA, PATRICIA ISABEL","dni":"44778899","est":"ACTIVO"},
+  {"cod":"E00111","nom":"PAREDES SOTO, RICARDO MANUEL","dni":"10334455","est":"NO ACTIVO"},
+  {"cod":"E00112","nom":"ESPINOZA VILCA, GLORIA MERCEDES","dni":"73445566","est":"ACTIVO"},
+  {"cod":"E00113","nom":"TORRES BENAVIDES, CESAR AUGUSTO","dni":"42667788","est":"ACTIVO"},
+  {"cod":"E00114","nom":"AGUILAR PRADO, SILVIA BEATRIZ","dni":"07889900","est":"NO ACTIVO"},
+  {"cod":"E00115","nom":"BUSTAMANTE LEON, FERNANDO JOSE","dni":"74112233","est":"ACTIVO"},
+  {"cod":"E00116","nom":"NAVARRO ESCOBAR, JULIA ANDREA","dni":"43990011","est":"ACTIVO"},
+  {"cod":"E00117","nom":"OLIVARES CANO, MARCO TULIO","dni":"11556677","est":"NO ACTIVO"},
+  {"cod":"E00118","nom":"REYES GUTIERREZ, SANDRA PAOLA","dni":"75223344","est":"ACTIVO"},
+  {"cod":"E00119","nom":"ZAVALA CORDOVA, ALEJANDRO IVAN","dni":"40445566","est":"ACTIVO"},
+  {"cod":"E00120","nom":"IPARRAGUIRRE VEGA, LUZ MARINA","dni":"05667788","est":"NO ACTIVO"}
+];
+// ==== FIN DATOS ====
+
+/* =========================================================================
+   2. ÍNDICE DE BÚSQUEDA
+   ========================================================================= */
+const norm = s => String(s ?? '').trim().toUpperCase().replace(/[\s\-_.]/g,'');
+const sinCeros = s => norm(s).replace(/^0+/,'') || '0';
+
+let registros = DATOS, indice = new Map();
+
+function construirIndice(lista){
+  indice = new Map();
+  for(const r of lista){
+    for(const k of [norm(r.cod), sinCeros(r.cod), norm(r.dni), sinCeros(r.dni)]){
+      if(k && !indice.has(k)) indice.set(k, r);
+    }
+  }
+  document.getElementById('infoBD').textContent = lista.length + ' registros';
+  document.getElementById('led').classList.toggle('on', lista.length > 0);
+}
+
+function buscar(txt){
+  return indice.get(norm(txt)) || indice.get(sinCeros(txt)) || null;
+}
+
+async function cargarDatos(){
+  if(FUENTE.modo === 'url' && FUENTE.url){
+    try{
+      const r = await fetch(FUENTE.url, {cache:'no-store'});
+      const j = await r.json();
+      if(Array.isArray(j) && j.length){
+        localStorage.setItem(FUENTE.cache, JSON.stringify(j));
+        registros = j;
+      }
+    }catch(e){
+      const c = localStorage.getItem(FUENTE.cache);
+      if(c) registros = JSON.parse(c);
+    }
+  }
+  construirIndice(registros);
+}
+
+/* =========================================================================
+   3. PRESENTACIÓN DEL RESULTADO
+   ========================================================================= */
+const $ = id => document.getElementById(id);
+const historial = [];
+let temporizador = null, ultimo = '', ultimoMs = 0;
+
+function clase(est){
+  const e = norm(est);
+  if(e === 'ACTIVO') return 'activo';
+  if(e === 'NOACTIVO' || e === 'INACTIVO') return 'inactivo';
+  return 'desconocido';
+}
+
+function mostrar(reg, leido){
+  const c = reg ? clase(reg.est) : 'desconocido';
+  $('resultado').innerHTML = reg
+    ? `<div class="codigo">${reg.cod}</div>
+       <div class="nombre">${reg.nom}</div>
+       <div class="dni"><span>DNI</span>${reg.dni}</div>
+       <div class="estado e-${c}">${reg.est}</div>`
+    : `<div class="codigo">${leido}</div>
+       <div class="nombre">Sin coincidencia</div>
+       <div class="dni"><span>CÓDIGO</span>no está en la base</div>
+       <div class="estado e-desconocido">NO REGISTRADO<small>VERIFICAR MANUALMENTE</small></div>`;
+
+  document.body.classList.add('con-resultado');
+  document.body.classList.remove('buscando');
+
+  historial.unshift({
+    cod: reg ? reg.cod : leido,
+    nom: reg ? reg.nom : '—',
+    dni: reg ? reg.dni : '—',
+    est: reg ? reg.est : 'NO REGISTRADO',
+    c, hora: new Date().toLocaleTimeString('es-PE',{hour12:false})
+  });
+  $('cActivo').textContent = historial.filter(h => h.c === 'activo').length;
+  $('cOtro').textContent   = historial.filter(h => h.c !== 'activo').length;
+
+  señal(c);
+  clearTimeout(temporizador);
+  temporizador = setTimeout(limpiar, 2400);
+}
+
+function limpiar(){
+  document.body.classList.remove('con-resultado');
+  if(escaneando) document.body.classList.add('buscando');
+  $('resultado').innerHTML = '';
+}
+
+/* Sonido y vibración: distinto tono según el estado */
+let ctxAudio = null;
+function señal(c){
+  const patron = c === 'activo' ? [40] : c === 'inactivo' ? [70,60,70] : [50,50,50];
+  navigator.vibrate?.(patron);
+  try{
+    ctxAudio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const tonos = c === 'activo' ? [[880,0]] : c === 'inactivo' ? [[420,0],[300,.14]] : [[600,0],[600,.14]];
+    for(const [hz,at] of tonos){
+      const o = ctxAudio.createOscillator(), g = ctxAudio.createGain();
+      o.type = 'sine'; o.frequency.value = hz;
+      const t = ctxAudio.currentTime + at;
+      g.gain.setValueAtTime(.0001, t);
+      g.gain.exponentialRampToValueAtTime(.28, t + .012);
+      g.gain.exponentialRampToValueAtTime(.0001, t + .12);
+      o.connect(g).connect(ctxAudio.destination);
+      o.start(t); o.stop(t + .14);
+    }
+  }catch(e){}
+}
+
+function procesar(txt){
+  const ahora = Date.now();
+  if(txt === ultimo && ahora - ultimoMs < 2600) return;   // evita relecturas del mismo código
+  ultimo = txt; ultimoMs = ahora;
+  mostrar(buscar(txt), txt);
+}
+
+/* =========================================================================
+   4. CÁMARA Y LECTURA
+   ========================================================================= */
+const FORMATOS = ['code_128','code_39','code_93','codabar','ean_13','ean_8','itf','upc_a','upc_e','qr_code'];
+let stream = null, detector = null, escaneando = false, pista = null, luz = false;
+
+async function iniciar(){
+  if(!window.isSecureContext || !navigator.mediaDevices){
+    escaneando = false;
+    document.body.classList.remove('buscando');
+    $('btnCam').textContent = 'Iniciar';
+    $('aviso').innerHTML = 'La cámara necesita el APK o localhost.<br>Aquí solo funciona el botón Teclear.';
+    return;
+  }
+  if(!('BarcodeDetector' in window)){
+    $('aviso').textContent = 'Este navegador no lee códigos. Usa Chrome, o el botón Teclear.';
+    return;
+  }
+  try{
+    const soportados = await BarcodeDetector.getSupportedFormats();
+    detector = new BarcodeDetector({formats: FORMATOS.filter(f => soportados.includes(f))});
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}
+    });
+    $('video').srcObject = stream;
+    await $('video').play();
+
+    pista = stream.getVideoTracks()[0];
+    if(pista.getCapabilities?.().torch) $('btnLuz').hidden = false;
+
+    escaneando = true;
+    document.body.classList.add('buscando');
+    $('btnCam').textContent = 'Detener';
+    $('aviso').textContent = 'Apunta al código de barras';
+    bucle();
+  }catch(e){
+    $('aviso').textContent = e.name === 'NotAllowedError'
+      ? 'Permiso de cámara denegado. Habilítalo en el candado de la barra de direcciones.'
+      : 'No se pudo abrir la cámara: ' + e.name;
+  }
+}
+
+async function bucle(){
+  while(escaneando){
+    try{
+      const v = $('video');
+      if(v.readyState >= 2){
+        const hits = await detector.detect(v);
+        if(hits.length) procesar(hits[0].rawValue);
+      }
+    }catch(e){}
+    await new Promise(r => setTimeout(r, 140));
+  }
+}
+
+function detener(){
+  escaneando = false;
+  stream?.getTracks().forEach(t => t.stop());
+  stream = null; luz = false;
+  $('btnLuz').classList.remove('on'); $('btnLuz').hidden = true;
+  $('btnCam').textContent = 'Iniciar';
+  $('aviso').textContent = 'Cámara detenida';
+  document.body.classList.remove('buscando');
+}
+
+/* =========================================================================
+   5. CONTROLES
+   ========================================================================= */
+$('btnCam').onclick = () => escaneando ? detener() : iniciar();
+
+$('btnLuz').onclick = async () => {
+  luz = !luz;
+  try{ await pista.applyConstraints({advanced:[{torch:luz}]}); $('btnLuz').classList.toggle('on', luz); }
+  catch(e){ luz = false; }
+};
+
+$('btnManual').onclick = () => { $('dlgManual').showModal(); $('inManual').value=''; $('inManual').focus(); };
+$('btnCerrarManual').onclick = () => $('dlgManual').close();
+$('btnBuscar').onclick = () => {
+  const t = $('inManual').value.trim();
+  if(!t) return;
+  $('dlgManual').close();
+  ultimo = ''; procesar(t);
+};
+$('inManual').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnBuscar').click(); });
+
+$('btnLista').onclick = () => {
+  $('filas').innerHTML = historial.length
+    ? historial.map(h => `<li>
+        <span class="pill p-${h.c}">${h.est}</span>
+        <span>${h.nom}<br><span style="color:var(--muted);font-family:var(--mono);font-size:11px">${h.cod} · ${h.dni}</span></span>
+        <span class="hora">${h.hora}</span></li>`).join('')
+    : '<div class="vacio">Aún no hay escaneos.</div>';
+  $('dlgLista').showModal();
+};
+$('btnCerrarLista').onclick = () => $('dlgLista').close();
+
+$('btnCSV').onclick = () => {
+  const csv = 'Hora;Codigo;Nombre;DNI;Estado\n' +
+    historial.map(h => [h.hora,h.cod,h.nom,h.dni,h.est].join(';')).join('\n');
+  const nombre = 'escaneos_' + new Date().toISOString().slice(0,10) + '.csv';
+
+  // Dentro del APK no hay carpeta de descargas del navegador: lo guarda Android.
+  if(window.Puente?.guardarCSV){ Puente.guardarCSV(csv, nombre); return; }
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'}));
+  a.download = nombre;
+  a.click();
+};
+
+/* Instalable en el escritorio del celular sin archivos extra.
+   Dentro del APK no hace falta: ya tiene su propio ícono. */
+if(!window.Puente){
+const manifiesto = {
+  name:'Verificador de fotochecks', short_name:'Fotocheck',
+  display:'standalone', background_color:'#14161A', theme_color:'#14161A',
+  start_url:location.href.split('#')[0],
+  icons:[{src:'data:image/svg+xml,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" fill="#14161A"/>` +
+    [96,140,168,212,240,284,312,356,384].map((x,i) =>
+      `<rect x="${x}" y="150" width="${i%3?14:26}" height="212" fill="#00C08B"/>`).join('') +
+    `</svg>`), sizes:'512x512', type:'image/svg+xml', purpose:'any'}]
+};
+const enlace = document.createElement('link');
+enlace.rel = 'manifest';
+enlace.href = URL.createObjectURL(new Blob([JSON.stringify(manifiesto)], {type:'application/manifest+json'}));
+document.head.appendChild(enlace);
+}
+
+/* Arranque */
+cargarDatos().then(iniciar);
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden && escaneando) detener();
+});
+</script>
+</body>
+</html>
