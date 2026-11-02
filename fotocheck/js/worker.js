@@ -1,10 +1,9 @@
 /* Motor de procesamiento: corre en un Web Worker, 100% en el navegador.
  * Pipeline (equivalente al script de escritorio v9):
  *   1) Segmentación con ormbg (2024, ISNet reentrenado solo con personas)
- *   2) Refinado de bordes por color + guided filter (reemplazo del matting)
- *   3) Limpieza de máscara (componente principal, huecos pequeños, suavizado)
- *   4) Detección de rostro YuNet
- *   5) Recorte por altura de cabeza al tamaño elegido (480x640 por defecto)
+ *   2) Limpieza de máscara (componente principal, huecos pequeños, suavizado)
+ *   3) Detección de rostro YuNet
+ *   4) Recorte por altura de cabeza al tamaño elegido (480x640 por defecto)
  */
 importScripts("../vendor/ort.wasm.min.js");
 
@@ -346,19 +345,30 @@ async function processPhoto(bitmap, outW, outH) {
   post("stage", { text: "Separando a la persona del fondo…" });
   const mh = await segment(sessions.seg, src, 1024, [0, 0, 0], [1, 1, 1], 255);
 
-  post("stage", { text: "Afinando bordes y cabello…" });
-  const gray = new Uint8Array(n);
-  for (let q = 0, p = 0; q < n; q++, p += 4) gray[q] = (rgba[p] * 299 + rgba[p + 1] * 587 + rgba[p + 2] * 114) / 1000 | 0;
-  const r = Math.max(2, Math.round(Math.max(W, H) / 250));
-  let alpha = guided(gray, colorMatte(rgba, mh, W, H), W, H, r);
-  alpha = cleanMask(alpha, W, H);
+  // La máscara de ormbg ya trae bordes y cabello finos: el refinado por color
+  // (pensado para u2net) le metía bordes dentados. Solo se limpia.
+  const alpha = cleanMask(mh, W, H);
+  // Borde más firme: lo casi transparente (halo de fondo) se va, lo casi opaco queda entero
+  for (let q = 0; q < n; q++) alpha[q] = Math.max(0, Math.min(255, (alpha[q] - 60) * 255 / 140));
+
+  // Color de la persona cerca del borde (promedio local de píxeles seguros):
+  // en el borde semitransparente se usa ese color en vez del fondo que se cuela
+  const R = Math.max(3, Math.round(Math.max(W, H) / 80));
+  const fg = new Float32Array(n), cr = new Float32Array(n), cgr = new Float32Array(n), cb = new Float32Array(n);
+  for (let q = 0, p = 0; q < n; q++, p += 4) if (alpha[q] >= 240) { fg[q] = 1; cr[q] = rgba[p]; cgr[q] = rgba[p + 1]; cb[q] = rgba[p + 2]; }
+  const nF = boxFilter(fg, W, H, R), sR = boxFilter(cr, W, H, R), sG = boxFilter(cgr, W, H, R), sB = boxFilter(cb, W, H, R);
 
   const comp = new Uint8ClampedArray(n * 4);
   for (let q = 0, p = 0; q < n; q++, p += 4) {
     const a = alpha[q] / 255;
-    comp[p] = rgba[p] * a + 255 * (1 - a);
-    comp[p + 1] = rgba[p + 1] * a + 255 * (1 - a);
-    comp[p + 2] = rgba[p + 2] * a + 255 * (1 - a);
+    let r = rgba[p], g = rgba[p + 1], b = rgba[p + 2];
+    if (alpha[q] > 10 && alpha[q] < 240 && nF[q] > 1e-3) {
+      const k = nF[q];
+      r = (sR[q] / k) * (1 - a) + r * a; g = (sG[q] / k) * (1 - a) + g * a; b = (sB[q] / k) * (1 - a) + b * a;
+    }
+    comp[p] = r * a + 255 * (1 - a);
+    comp[p + 1] = g * a + 255 * (1 - a);
+    comp[p + 2] = b * a + 255 * (1 - a);
     comp[p + 3] = 255;
   }
 

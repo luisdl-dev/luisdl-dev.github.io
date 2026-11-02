@@ -56,7 +56,7 @@
   resetSize.addEventListener("click", () => { inW.value = DEF_W; inH.value = DEF_H; onSizeInput(); });
 
   // ── Motor ───────────────────────────────────────────────────────────────
-  const VERSION = "1.2", VERSION_FECHA = "2 nov 2026";   // subir en cada cambio publicado
+  const VERSION = "1.3", VERSION_FECHA = "2 nov 2026";   // subir en cada cambio publicado
   document.getElementById("ver").textContent = `${VERSION} (${VERSION_FECHA})`;
   const worker = new Worker(`js/worker.js?v=${VERSION}`);
   let ready = false, working = false, pending = null, lastUrl = null;
