@@ -272,33 +272,44 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
 
     <div class="projects">
 
-      <!-- 1. EDITOR FOTOCHECK (privado) -->
-      <article class="project rv" data-cat="ia auto">
-        <div class="p-media">
-          <div class="shot" data-cap="Editor de fotos de identificación — interfaz principal">
-            <div class="bar"><i></i><i></i><i></i></div>
-            <img src="assets/images/editor-fotocheck/referencia.jpg" alt="Interfaz del editor de fotos de identificación">
-            <div class="ph">Captura pendiente<b>assets/images/editor-fotocheck/referencia.jpg</b></div>
-          </div>
-          <p class="ref">Imagen referencial de la interfaz</p>
-        </div>
+      <!-- 1. MONITOREO CCTV (privado, en desarrollo) -->
+      <article class="project rv noimg" data-cat="auto sec ia">
         <div class="p-body">
-          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">01</span></div>
-          <h3>Editor Inteligente de Fotos de Identificación</h3>
-          <p>Herramienta para preparar fotos de fotocheck y fotocarnet en segundos. Convierte fotos difíciles —selfies, baja calidad, fondos irregulares— en fotos de identificación listas para imprimir, manteniendo el control del usuario en cada paso.</p>
+          <div class="p-top"><span class="badge new">En desarrollo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">01</span></div>
+          <h3>Monitoreo Inteligente de NVR y Cámaras</h3>
+          <p>Plataforma de supervisión para sistemas de videovigilancia: además de detectar desconexiones, verifica que cada cámara realmente esté viendo, grabando y con la hora correcta, y revisa la seguridad de los equipos.</p>
           <ul class="feat">
-            <li>Procesa fotos complejas: selfies, poca luz o baja resolución</li>
-            <li>Recorte configurable con proporciones de identificación</li>
-            <li>Vista previa de cada cambio antes de aplicarlo</li>
-            <li>Flujo rápido pensado para alto volumen de fotos</li>
-            <li>Versión de escritorio para procesamiento masivo (en desarrollo)</li>
+            <li>Monitoreo de cámaras personalizado y multiservidor</li>
+            <li>Detección de desconexiones en tiempo real con alertas por Telegram</li>
+            <li>Detección de desfases entre la hora OSD de la cámara y la hora actual</li>
+            <li>Detección de imagen borrosa o nula y de visión nocturna no operativa</li>
+            <li>Reporte de tiempo de grabación, intermitencias y pérdidas de grabación</li>
+            <li>Detección de vulnerabilidades en NVR y cámaras</li>
+            <li>Seguimiento de personas, rostros u objetos con IA</li>
           </ul>
-          <div class="stack"><span>Python</span><span>OpenCV</span><span>IA</span><span>Procesamiento de imagen</span></div>
-          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Editor%20de%20Fotos">Solicitar demo</a></div>
+          <div class="stack"><span>Python</span><span>OpenCV</span><span>IA</span><span>Redes</span><span>Concurrencia</span><span>Telegram API</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Monitoreo%20CCTV">Solicitar demo</a></div>
         </div>
       </article>
 
-      <!-- 2. VIDEOEDITOR DIFUMINADOR (open source) -->
+      <!-- 2. WHATSAPP BOT (privado) -->
+      <article class="project rv noimg" data-cat="auto ia">
+        <div class="p-body">
+          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">02</span></div>
+          <h3>Automatizador de Mensajes de WhatsApp con IA</h3>
+          <p>Bot que envía mensajes programados a varios grupos de WhatsApp, espera las respuestas dentro de una ventana de tiempo y las interpreta con inteligencia artificial local, sin intervención manual.</p>
+          <ul class="feat">
+            <li>Envío automático de mensajes programados a múltiples grupos</li>
+            <li>Lectura de respuestas dentro de una ventana de tiempo configurable</li>
+            <li>Clasificación de respuestas con IA local (sin enviar datos a la nube)</li>
+            <li>Seguimiento y control de grupos de WhatsApp</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>WhatsApp Web</span><span>IA local</span><span>LLM</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Automatizador%20WhatsApp">Solicitar demo</a></div>
+        </div>
+      </article>
+
+      <!-- 3. VIDEOEDITOR DIFUMINADOR (open source) -->
       <article class="project rv" data-cat="ia">
         <div class="p-media">
           <div class="shot" data-cap="Editor de video — interfaz">
@@ -312,7 +323,7 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
           </div>
         </div>
         <div class="p-body">
-          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">02</span></div>
+          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">03</span></div>
           <h3>Editor de Video con Difuminado de Rostros</h3>
           <p>Aplicación para reproducir videos y difuminar rostros o formas de forma manual o automática con IA, protegiendo la identidad de las personas en grabaciones.</p>
           <ul class="feat">
@@ -327,7 +338,33 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
         </div>
       </article>
 
-      <!-- 3. CANDADO (privado) -->
+      <!-- 4. EDITOR FOTOCHECK (privado) -->
+      <article class="project rv" data-cat="ia auto">
+        <div class="p-media">
+          <div class="shot" data-cap="Editor de fotos de identificación — interfaz principal">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <img src="assets/images/editor-fotocheck/referencia.jpg" alt="Interfaz del editor de fotos de identificación">
+            <div class="ph">Captura pendiente<b>assets/images/editor-fotocheck/referencia.jpg</b></div>
+          </div>
+          <p class="ref">Imagen referencial de la interfaz</p>
+        </div>
+        <div class="p-body">
+          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">04</span></div>
+          <h3>Editor Inteligente de Fotos de Identificación</h3>
+          <p>Herramienta para preparar fotos de fotocheck y fotocarnet en segundos. Convierte fotos difíciles —selfies, baja calidad, fondos irregulares— en fotos de identificación listas para imprimir, manteniendo el control del usuario en cada paso.</p>
+          <ul class="feat">
+            <li>Procesa fotos complejas: selfies, poca luz o baja resolución</li>
+            <li>Recorte configurable con proporciones de identificación</li>
+            <li>Vista previa de cada cambio antes de aplicarlo</li>
+            <li>Flujo rápido pensado para alto volumen de fotos</li>
+            <li>Versión de escritorio para procesamiento masivo (en desarrollo)</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>OpenCV</span><span>IA</span><span>Procesamiento de imagen</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Editor%20de%20Fotos">Solicitar demo</a></div>
+        </div>
+      </article>
+
+      <!-- 5. CANDADO (privado) -->
       <article class="project rv" data-cat="sec">
         <div class="p-media">
           <div class="shot" data-cap="Candado — teclado numérico aleatorio">
@@ -338,7 +375,7 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
           <p class="ref">Imagen referencial de la interfaz</p>
         </div>
         <div class="p-body">
-          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">03</span></div>
+          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">05</span></div>
           <h3>Candado: Bloqueo de Carpetas con PIN</h3>
           <p>Aplicación de escritorio para Windows que oculta y protege carpetas de trabajo en equipos compartidos, sin instalar software adicional ni mover los archivos de lugar.</p>
           <ul class="feat">
@@ -353,7 +390,7 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
         </div>
       </article>
 
-      <!-- 4. DETECCIÓN DE MOVIMIENTO (open source) -->
+      <!-- 6. DETECCIÓN DE MOVIMIENTO (open source) -->
       <article class="project rv" data-cat="ia sec">
         <div class="p-media">
           <div class="shot" data-cap="Detección de movimiento — interfaz">
@@ -363,7 +400,7 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
           </div>
         </div>
         <div class="p-body">
-          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">04</span></div>
+          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">06</span></div>
           <h3>Detección de Movimiento en Videos Largos con IA</h3>
           <p>Analiza horas de grabación de videovigilancia y extrae automáticamente solo los momentos relevantes: movimiento, personas o rostros.</p>
           <ul class="feat">
@@ -375,47 +412,6 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
           </ul>
           <div class="stack"><span>Python</span><span>OpenCV</span><span>OpenVINO</span><span>NumPy</span><span>PyQt</span></div>
           <div class="p-actions"><a class="btn btn-ghost" target="_blank" href="https://github.com/luisdl-dev/video-mov-deteccion">Ver en GitHub ↗</a></div>
-        </div>
-      </article>
-
-      <!-- 5. WHATSAPP BOT (privado) -->
-      <article class="project rv noimg" data-cat="auto ia">
-        <div class="p-body">
-          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">05</span></div>
-          <h3>Automatizador de Mensajes de WhatsApp con IA</h3>
-          <p>Bot que envía mensajes programados a varios grupos de WhatsApp, espera las respuestas dentro de una ventana de tiempo y las interpreta con inteligencia artificial local, sin intervención manual.</p>
-          <ul class="feat">
-            <li>Envío automático de mensajes programados a múltiples grupos</li>
-            <li>Lectura de respuestas dentro de una ventana de tiempo configurable</li>
-            <li>Clasificación de respuestas con IA local (sin enviar datos a la nube)</li>
-            <li>Seguimiento y control de grupos de WhatsApp</li>
-          </ul>
-          <div class="stack"><span>Python</span><span>WhatsApp Web</span><span>IA local</span><span>LLM</span></div>
-          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Automatizador%20WhatsApp">Solicitar demo</a></div>
-        </div>
-      </article>
-
-      <!-- 6. MONITOREO NVR (open source) -->
-      <article class="project rv" data-cat="auto sec">
-        <div class="p-media">
-          <div class="shot" data-cap="Alerta de desconexión en Telegram">
-            <div class="bar"><i></i><i></i><i></i></div>
-            <img src="assets/images/monitoreo-camaras/alerta.jpg" alt="Alerta de Telegram">
-            <div class="ph">Captura pendiente<b>assets/images/monitoreo-camaras/alerta.jpg</b></div>
-          </div>
-          <p class="ref">Imagen referencial de la interfaz</p>
-        </div>
-        <div class="p-body">
-          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">06</span></div>
-          <h3>Monitoreo de Desconexiones de NVR y Cámaras</h3>
-          <p>Supervisa múltiples rangos de IP en la red local —NVRs y cámaras de videovigilancia— y avisa por Telegram cuando un equipo permanece caído más del tiempo configurado.</p>
-          <ul class="feat">
-            <li>Monitoreo concurrente de decenas de dispositivos</li>
-            <li>Detección de fallas de conectividad en tiempo real</li>
-            <li>Alertas automáticas por Telegram con umbral configurable</li>
-          </ul>
-          <div class="stack"><span>Python</span><span>Redes</span><span>Concurrencia</span><span>Telegram API</span></div>
-          <div class="p-actions"><a class="btn btn-ghost" target="_blank" href="https://github.com/luisdl-dev/seguimiento-desconexion-camaras-ip">Ver en GitHub ↗</a></div>
         </div>
       </article>
 
