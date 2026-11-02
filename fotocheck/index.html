@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Foto para fotocheck</title>
+  <meta name="description" content="Convierte cualquier foto en una foto de fotocheck 480 × 640 con fondo blanco y el rostro bien encuadrado. Se procesa en tu navegador: la foto no se sube a ningún servidor.">
+  <script src="coi-serviceworker.min.js"></script>
+  <link rel="preload" href="fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 32'%3E%3Crect x='1' y='1' width='22' height='30' rx='3' fill='%2314213A'/%3E%3Crect x='8' y='3' width='8' height='2' rx='1' fill='%23DCE2E9'/%3E%3Ccircle cx='12' cy='14' r='4' fill='%23DCE2E9'/%3E%3Cpath d='M5 26c1-5 4-7 7-7s6 2 7 7z' fill='%23DCE2E9'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="top">
+    <span class="brand">Foto para fotocheck</span>
+    <span class="privacy">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1 2 3.5v4C2 11 4.6 14.1 8 15c3.4-.9 6-4 6-7.5v-4z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m5.5 8 1.8 1.8L10.8 6.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      Tu foto no sale de tu equipo
+    </span>
+  </header>
+
+  <main class="hero">
+    <section class="pitch">
+      <h1>Tu foto para fotocheck, lista en un clic</h1>
+      <p class="lede">Sube una foto y obtén una de <strong>480 × 640</strong> con fondo blanco, el rostro centrado y sin deformar.</p>
+      <ul class="facts">
+        <li>Quita el fondo cuidando el cabello y la ropa</li>
+        <li>Encuadra según la altura real de la cabeza</li>
+        <li>Funciona con selfies y fotos de baja calidad</li>
+        <li>Todo ocurre en tu navegador: nada se sube a internet</li>
+      </ul>
+    </section>
+
+    <section class="badge-wrap" aria-label="Editor">
+      <div class="badge" id="badge">
+        <div class="slot" aria-hidden="true"></div>
+        <div class="window" id="drop" tabindex="0" role="button" aria-describedby="drop-hint">
+          <div class="empty" id="empty">
+            <svg viewBox="0 0 48 64" aria-hidden="true"><circle cx="24" cy="24" r="10"/><path d="M6 60c2-12 9-18 18-18s16 6 18 18"/></svg>
+            <p id="drop-hint">Arrastra una foto aquí<br>o <span class="link">elige un archivo</span></p>
+          </div>
+          <img id="result" alt="Foto procesada de 480 por 640" hidden>
+          <div class="busy" id="busy" hidden>
+            <div class="bar"><div class="fill" id="fill"></div></div>
+            <p id="stage">Preparando…</p>
+          </div>
+        </div>
+        <div class="badge-foot">
+          <div class="meta" id="meta" aria-live="polite">Sale en 480 × 640, formato JPG</div>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="again" hidden>Otra foto</button>
+            <a class="btn primary" id="download" hidden download>Descargar JPG</a>
+          </div>
+        </div>
+        <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
+      </div>
+      <p class="first-load" id="first-load">La primera vez se descargan los modelos (unos 90 MB). Después quedan guardados en tu navegador.</p>
+    </section>
+  </main>
+
+  <section class="how">
+    <h2>Cómo funciona</h2>
+    <ol>
+      <li><strong>Sube la foto.</strong> Sirve una selfie, una foto de celular o una escaneada.</li>
+      <li><strong>Se procesa en tu equipo.</strong> Se separa a la persona del fondo, se afinan los bordes y se detecta el rostro.</li>
+      <li><strong>Descarga el JPG.</strong> Sale en 480 × 640 con el mismo nombre de tu archivo, listo para el sistema de credenciales.</li>
+    </ol>
+  </section>
+
+  <footer class="foot">
+    <p>¿Tienes cientos de fotos? Hay una versión de escritorio que procesa lotes completos por DNI. <a href="../#proyectos">Ver otros proyectos</a></p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
