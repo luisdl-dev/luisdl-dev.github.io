@@ -1,203 +1,537 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Luis de la Torre Palomino | Portafolio Personal</title>
-    <style>
-        body {
-            font-family: Arial;
-            background-color: #0d1117;
-            color: #c9d1d9;
-            text-align: center;
-            padding: 40px;
-        }
-        h1 { color: #58a6ff; }
-        .card {
-            background: #161b22;
-            padding: 20px;
-            margin: 20px auto;
-            width: 60%;
-            border-radius: 10px;
-        }
-        a {
-            color: #58a6ff;
-            text-decoration: none;
-        }
-        .contacto {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            font-size: 14px;
-        }
-        .btn-play {
-            display: inline-block;
-            background: #238636;
-            color: white !important;
-            padding: 10px 24px;
-            border-radius: 6px;
-            font-weight: bold;
-            text-decoration: none;
-            margin-right: 10px;
-        }
-        .btn-play:hover {
-            background: #2ea043;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luis de la Torre Palomino | Desarrollador · Automatización · IA</title>
+<meta name="description" content="Portafolio de Luis de la Torre Palomino: aplicaciones de escritorio y web, automatización, visión por computadora e IA aplicada a seguridad.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090d; --bg2:#0c1017; --card:#0f141c; --line:#1c2430; --line2:#273142;
+  --text:#e6edf3; --muted:#8b97a7; --dim:#5b6676;
+  --a1:#4cc9f0; --a2:#7c5cff; --a3:#2ee6a6; --warn:#ffb547;
+  --grad:linear-gradient(120deg,var(--a1),var(--a2) 55%,var(--a3));
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+.wrap{width:min(1180px,100% - 40px);margin-inline:auto}
+.mono{font-family:"JetBrains Mono",monospace}
+
+/* ---------- NAV ---------- */
+nav{position:fixed;inset:0 0 auto;z-index:50;transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
+nav.scrolled{background:rgba(7,9,13,.72);backdrop-filter:blur(14px);border-color:var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
+.logo{font-family:"Space Grotesk";font-weight:700;font-size:20px;letter-spacing:-.02em}
+.logo span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav-links{display:flex;gap:30px;font-size:14px;color:var(--muted)}
+.nav-links a{position:relative;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-links a::after{content:"";position:absolute;left:0;bottom:-6px;width:0;height:2px;background:var(--grad);transition:width .25s}
+.nav-links a:hover::after{width:100%}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;transition:transform .2s,box-shadow .2s,background .2s;cursor:pointer;border:0}
+.btn-primary{background:var(--grad);color:#05070a;box-shadow:0 8px 30px -8px rgba(124,92,255,.6)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px -8px rgba(124,92,255,.8)}
+.btn-ghost{border:1px solid var(--line2);color:var(--text);background:rgba(255,255,255,.02)}
+.btn-ghost:hover{border-color:var(--a1);transform:translateY(-2px)}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:110px 0 60px;overflow:hidden}
+#net{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.35;animation:float 16s ease-in-out infinite}
+.blob.b1{width:520px;height:520px;background:var(--a2);top:-120px;right:-120px}
+.blob.b2{width:420px;height:420px;background:var(--a1);bottom:-160px;left:-120px;animation-delay:-6s}
+@keyframes float{50%{transform:translate(40px,30px) scale(1.08)}}
+.hero-grid{position:relative;display:grid;grid-template-columns:1.25fr .75fr;gap:60px;align-items:center}
+.tag{display:inline-flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);border:1px solid var(--line2);padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.02)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--a3);box-shadow:0 0 0 0 rgba(46,230,166,.7);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 10px rgba(46,230,166,0)}100%{box-shadow:0 0 0 0 rgba(46,230,166,0)}}
+h1{font-family:"Space Grotesk";font-size:clamp(40px,6.4vw,78px);line-height:1.02;letter-spacing:-.035em;margin:22px 0 18px;font-weight:700}
+h1 .g{background:var(--grad);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:200% center}}
+.role{font-size:clamp(17px,2vw,21px);color:var(--muted);min-height:1.6em}
+.role b{color:var(--text);font-weight:500}
+.caret{display:inline-block;width:2px;height:1.1em;background:var(--a1);vertical-align:-3px;margin-left:3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.hero p.lead{margin-top:20px;max-width:560px;color:var(--muted)}
+.hero-cta{display:flex;gap:12px;margin-top:34px;flex-wrap:wrap}
+.stats{display:flex;gap:38px;margin-top:48px;flex-wrap:wrap}
+.stat b{font-family:"Space Grotesk";font-size:34px;display:block;line-height:1}
+.stat span{font-size:13px;color:var(--dim)}
+
+.avatar-card{position:relative;aspect-ratio:4/5;border-radius:28px;padding:2px;background:var(--grad);transform:rotate(2deg);transition:transform .5s}
+.avatar-card:hover{transform:rotate(0) scale(1.02)}
+.avatar-inner{position:relative;width:100%;height:100%;border-radius:26px;overflow:hidden;background:radial-gradient(circle at 30% 20%,#1a2233,#0b0f16)}
+.avatar-inner img{width:100%;height:100%;object-fit:cover}
+.avatar-fallback{position:absolute;inset:0;display:grid;place-items:center;font-family:"Space Grotesk";font-size:92px;font-weight:700;color:rgba(255,255,255,.08)}
+.chip-float{position:absolute;background:rgba(15,20,28,.85);backdrop-filter:blur(10px);border:1px solid var(--line2);border-radius:14px;padding:10px 14px;font-size:12px;display:flex;align-items:center;gap:8px;animation:bob 5s ease-in-out infinite}
+.chip-float.c1{left:-34px;top:16%}
+.chip-float.c2{right:-26px;bottom:18%;animation-delay:-2.5s}
+@keyframes bob{50%{transform:translateY(-10px)}}
+.scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);width:24px;height:38px;border:2px solid var(--line2);border-radius:14px}
+.scroll-hint::after{content:"";position:absolute;left:50%;top:7px;width:4px;height:8px;margin-left:-2px;border-radius:2px;background:var(--a1);animation:wheel 1.8s infinite}
+@keyframes wheel{to{transform:translateY(12px);opacity:0}}
+
+/* ---------- MARQUEE ---------- */
+.marquee{border-block:1px solid var(--line);background:var(--bg2);overflow:hidden;padding:18px 0}
+.track{display:flex;width:max-content;animation:scroll 45s linear infinite;will-change:transform}
+.marquee:hover .track{animation-play-state:paused}
+.grp{display:flex;flex:none}
+.grp span{font-family:"JetBrains Mono";font-size:14px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:28px;padding-right:28px}
+.grp span::after{content:"◆";font-size:8px;color:var(--a2)}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* ---------- SECTIONS ---------- */
+section{padding:120px 0}
+.eyebrow{font-family:"JetBrains Mono";font-size:13px;color:var(--a1);letter-spacing:.08em}
+h2{font-family:"Space Grotesk";font-size:clamp(32px,4.4vw,52px);letter-spacing:-.03em;line-height:1.08;margin:12px 0 16px}
+.sub{color:var(--muted);max-width:620px}
+.head{margin-bottom:56px}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}
+.filters button{background:transparent;border:1px solid var(--line2);color:var(--muted);padding:8px 16px;border-radius:999px;font:500 13px Inter;cursor:pointer;transition:.2s}
+.filters button:hover{color:var(--text)}
+.filters button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* ---------- PROJECTS ---------- */
+.projects{display:flex;flex-direction:column;gap:36px}
+.project{position:relative;display:grid;grid-template-columns:1.1fr 1fr;gap:0;background:var(--card);border:1px solid var(--line);border-radius:26px;overflow:hidden;transition:border-color .3s,transform .3s}
+.project:nth-child(even){grid-template-columns:1fr 1.1fr}
+.project:nth-child(even) .p-media{order:2}
+.project::before{content:"";position:absolute;inset:0;background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(124,92,255,.10),transparent 40%);opacity:0;transition:opacity .3s;pointer-events:none}
+.project:hover{border-color:var(--line2)}
+.project:hover::before{opacity:1}
+.project.hide{display:none}
+.project.noimg,.project.noimg:nth-child(even){grid-template-columns:1fr}
+.project.noimg .p-body{max-width:820px}
+.p-media{position:relative;background:#0a0e14;padding:28px;display:flex;flex-direction:column;gap:14px;justify-content:center}
+.shot{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line2);background:#0b0f15;cursor:zoom-in;box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
+.shot .bar{display:flex;gap:6px;padding:9px 12px;background:#121821;border-bottom:1px solid var(--line)}
+.shot .bar i{width:9px;height:9px;border-radius:50%;background:#2a3342}
+.shot .bar i:nth-child(1){background:#ff5f57}.shot .bar i:nth-child(2){background:#febc2e}.shot .bar i:nth-child(3){background:#28c840}
+.shot img{width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top;transition:transform .6s}
+.shot:hover img{transform:scale(1.04)}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.thumbs .shot img{aspect-ratio:16/10}
+.thumbs .shot .bar{display:none}
+.ph{display:none;aspect-ratio:16/10;place-items:center;text-align:center;padding:18px;color:var(--dim);font-size:12px;background:repeating-linear-gradient(45deg,#0d1219,#0d1219 10px,#0f151d 10px,#0f151d 20px)}
+.ph b{display:block;color:var(--muted);font-family:"JetBrains Mono";font-weight:500;margin-top:6px;word-break:break-all}
+.shot.missing{cursor:default}
+.shot.missing img{display:none}
+.shot.missing .ph{display:grid}
+.thumbs .shot.missing{display:none}
+.ref{font-size:12px;color:var(--dim);text-align:center}
+
+.p-body{position:relative;padding:44px 44px 40px}
+.p-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.badge{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);letter-spacing:.02em}
+.badge.new{color:var(--a3);border-color:rgba(46,230,166,.35);background:rgba(46,230,166,.06)}
+.badge.lock{color:var(--warn);border-color:rgba(255,181,71,.35);background:rgba(255,181,71,.06)}
+.badge.open{color:var(--a1);border-color:rgba(76,201,240,.35);background:rgba(76,201,240,.06)}
+.p-num{font-family:"JetBrains Mono";font-size:12px;color:var(--dim);margin-left:auto}
+.project h3{font-family:"Space Grotesk";font-size:clamp(24px,2.6vw,32px);letter-spacing:-.02em;line-height:1.15;margin-bottom:14px}
+.project p{color:var(--muted);font-size:15.5px}
+.feat{list-style:none;margin:22px 0;display:grid;gap:10px}
+.feat li{position:relative;padding-left:26px;font-size:14.5px;color:#c4cdd8}
+.feat li::before{content:"";position:absolute;left:0;top:7px;width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,rgba(76,201,240,.25),rgba(124,92,255,.25));border:1px solid rgba(124,92,255,.5)}
+.feat li::after{content:"";position:absolute;left:5px;top:10px;width:4px;height:7px;border:solid var(--a3);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.stack{display:flex;flex-wrap:wrap;gap:7px;margin:20px 0 26px}
+.stack span{font-family:"JetBrains Mono";font-size:12px;padding:5px 10px;border-radius:8px;background:#141a24;border:1px solid var(--line);color:#aeb9c7}
+.p-actions{display:flex;gap:10px;flex-wrap:wrap}
+.note{font-size:13px;color:var(--dim);border-left:2px solid var(--line2);padding-left:12px;margin-top:4px}
+
+/* ---------- SKILLS ---------- */
+.skills{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.skill{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:28px;transition:transform .3s,border-color .3s}
+.skill:hover{transform:translateY(-6px);border-color:var(--line2)}
+.ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(76,201,240,.15),rgba(124,92,255,.15));border:1px solid var(--line2);margin-bottom:18px}
+.ico svg{width:22px;height:22px;stroke:var(--a1)}
+.skill h4{font-family:"Space Grotesk";font-size:19px;margin-bottom:8px}
+.skill p{font-size:14px;color:var(--muted)}
+
+/* ---------- CONTACT ---------- */
+.contact{position:relative;border:1px solid var(--line);border-radius:32px;padding:80px 40px;text-align:center;overflow:hidden;background:radial-gradient(ellipse at top,#141a2a,var(--bg2) 70%)}
+.contact::after{content:"";position:absolute;inset:-2px;border-radius:32px;padding:1px;background:var(--grad);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.5;pointer-events:none}
+.contact h2{max-width:720px;margin-inline:auto}
+.contact .sub{margin:0 auto 34px}
+.mail{font-family:"JetBrains Mono";font-size:clamp(14px,2.2vw,20px);display:inline-flex;align-items:center;gap:12px;padding:16px 26px;border-radius:16px;border:1px solid var(--line2);background:rgba(0,0,0,.25);transition:.25s}
+.mail:hover{border-color:var(--a1);box-shadow:0 0 0 6px rgba(76,201,240,.08)}
+footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
+
+/* ---------- REVEAL ---------- */
+.rv{opacity:0;transform:translateY(40px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}
+
+/* ---------- LIGHTBOX ---------- */
+#lb{position:fixed;inset:0;z-index:100;background:rgba(3,5,8,.92);backdrop-filter:blur(8px);display:none;place-items:center;padding:30px;cursor:zoom-out}
+#lb.on{display:grid;animation:fade .25s}
+#lb img{max-height:88vh;border-radius:12px;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+#lb small{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:var(--muted)}
+@keyframes fade{from{opacity:0}}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width:960px){
+  .hero-grid{grid-template-columns:1fr}
+  .avatar-card{max-width:300px;margin:20px auto 0}
+  .project,.project:nth-child(even){grid-template-columns:1fr}
+  .project:nth-child(even) .p-media{order:0}
+  .skills{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+}
+@media (max-width:560px){
+  .p-body{padding:30px 22px}
+  .p-media{padding:16px}
+  .skills{grid-template-columns:1fr}
+  section{padding:84px 0}
+  .chip-float{display:none}
+  .contact{padding:56px 22px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
+}
+</style>
 </head>
 <body>
-<div class="contacto">
-    Contacto: 
-    <a href="mailto:luisdelatorrepalomino@gmail.com">
-        luisdelatorrepalomino@gmail.com
-    </a>
+
+<nav id="nav">
+  <div class="wrap">
+    <a href="#top" class="logo">luis<span>.dev</span></a>
+    <div class="nav-links">
+      <a href="#proyectos">Proyectos</a>
+      <a href="#habilidades">Habilidades</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero" id="top">
+  <canvas id="net"></canvas>
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="tag rv"><i class="dot"></i> Disponible para nuevos proyectos</span>
+      <h1 class="rv d1">Luis de la Torre<br><span class="g">Palomino</span></h1>
+      <div class="role rv d2">Desarrollador autodidacta · <b id="typed"></b><i class="caret"></i></div>
+      <p class="lead rv d2">Construyo herramientas que resuelven problemas reales: aplicaciones de escritorio y web, automatización de procesos y visión por computadora con IA, pensadas para funcionar incluso en equipos de bajo rendimiento.</p>
+      <div class="hero-cta rv d3">
+        <a href="#proyectos" class="btn btn-primary">Ver proyectos
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="mailto:luisdelatorrepalomino@gmail.com" class="btn btn-ghost">Contactar</a>
+      </div>
+      <div class="stats rv d3">
+        <div class="stat"><b data-count="6">0</b><span>proyectos destacados</span></div>
+        <div class="stat"><b data-count="4">0</b><span>con interfaz gráfica</span></div>
+        <div class="stat"><b data-count="100" data-suffix="%">0</b><span>autodidacta</span></div>
+      </div>
+    </div>
+    <div class="rv d2" style="position:relative">
+      <div class="avatar-card">
+        <div class="avatar-inner">
+          <div class="avatar-fallback">LT</div>
+          <!-- Coloca tu foto en assets/images/perfil.jpg -->
+          <img src="assets/images/perfil.jpg" alt="Luis de la Torre Palomino" onerror="this.remove()">
+        </div>
+      </div>
+      <div class="chip-float c1"><span style="color:var(--a3)">●</span> Python · IA · Automatización</div>
+      <div class="chip-float c2"><span style="color:var(--a1)">●</span> Lima, Perú</div>
+    </div>
+  </div>
+  <div class="scroll-hint"></div>
+</header>
+
+<div class="marquee">
+  <div class="track">
+    <div class="grp" aria-hidden="false"><span>Python</span><span>OpenCV</span><span>YOLOv8</span><span>PyTorch</span><span>OpenVINO</span><span>FFmpeg</span><span>IA Personalizada</span><span>HTML · CSS · JS</span><span>Telegram / WhatsApp Bots</span><span>Automatización en general</span><span>CCTV / Ciberseguridad</span><span>Python</span><span>OpenCV</span><span>YOLOv8</span><span>PyTorch</span><span>OpenVINO</span><span>FFmpeg</span><span>IA Personalizada</span><span>HTML · CSS · JS</span><span>Telegram / WhatsApp Bots</span><span>Automatización en general</span><span>CCTV / Ciberseguridad</span></div>
+    <div class="grp" aria-hidden="true"><span>Python</span><span>OpenCV</span><span>YOLOv8</span><span>PyTorch</span><span>OpenVINO</span><span>FFmpeg</span><span>IA Personalizada</span><span>HTML · CSS · JS</span><span>Telegram / WhatsApp Bots</span><span>Automatización en general</span><span>CCTV / Ciberseguridad</span><span>Python</span><span>OpenCV</span><span>YOLOv8</span><span>PyTorch</span><span>OpenVINO</span><span>FFmpeg</span><span>IA Personalizada</span><span>HTML · CSS · JS</span><span>Telegram / WhatsApp Bots</span><span>Automatización en general</span><span>CCTV / Ciberseguridad</span></div>
+  </div>
 </div>
-<h1>Luis de la Torre Palomino</h1>
-<p>Desarrollador autodidacta | Automatización | Inteligencia Artificial | Aplicaciones de Escritorio y Web</p>
 
-<!-- JUEGO OCULTO TEMPORALMENTE (quitar este comentario para volver a mostrarlo)
-<div class="card">
-    <h2>Prototipo de Juego de Estrategia 3D en Navegador</h2>
-
-    <p>
-        Prototipo personal de un mini juego de estrategia en tiempo real,
-        desarrollado completamente en el navegador con renderizado 3D.
-        El proyecto explora mecánicas de combate de un solo carril, economía
-        basada en recolección de recursos y combate entre unidades con roles diferenciados.
-    </p>
-
-    <p>
-        Actualmente se encuentra en fase de prototipo funcional y se está migrando a
-        <b>Godot 4</b> para continuar su desarrollo con modelos, animaciones y
-        herramientas profesionales de motor de juego.
-    </p>
-
-    <p><b>Características:</b></p>
-    <ul style="text-align:left; display:inline-block;">
-        <li>Renderizado 3D en tiempo real con WebGL y estilo visual toon shading</li>
-        <li>Sistema de economía dinámica con unidades recolectoras autónomas</li>
-        <li>Cuatro tipos de unidades con roles diferenciados, incluyendo unidad aérea</li>
-        <li>Sistema de torretas defensivas posicionables a lo largo del campo</li>
-        <li>Torres base con capacidad ofensiva y sistema de priorización de objetivos</li>
-        <li>Combate con proyectiles guiados, reglas de contraataque y unidades voladoras</li>
-        <li>Sin instalación: jugable directamente desde el navegador</li>
-    </ul>
-
-    <p style="font-size:14px; color:#8b949e;">
-        Nota: Proyecto en desarrollo activo. La versión actual es un prototipo funcional;
-        la migración a Godot 4 incorporará modelos 3D detallados, animaciones, efectos y sonido.
-    </p>
-
-    <div style="display:flex; flex-direction:column; gap:15px; align-items:center;">
-        <img src="assets/images/mini-game-prototype/screenshot.png" alt="Captura del prototipo" width="600">
+<!-- ================= PROYECTOS ================= -->
+<section id="proyectos">
+  <div class="wrap">
+    <div class="head rv">
+      <span class="eyebrow">// PROYECTOS</span>
+      <h2>Trabajo seleccionado</h2>
+      <p class="sub">Herramientas reales en uso. Algunos proyectos son de código abierto; otros son privados y se muestran con capturas de su interfaz. Demos disponibles bajo solicitud.</p>
+      <div class="filters" id="filters">
+        <button class="on" data-f="all">Todos</button>
+        <button data-f="ia">IA / Visión</button>
+        <button data-f="auto">Automatización</button>
+        <button data-f="sec">Seguridad</button>
+      </div>
     </div>
 
-    <p style="margin-top:20px;">
-        <a href="https://luisdl-dev.github.io/MiniGamePrototype/" target="_blank" class="btn-play">
-            ▶ Jugar ahora
-        </a>
-    </p>
-</div>
--->
+    <div class="projects">
 
-<div class="card">
-    <h2>Editor de Video con Difuminado Manual y Automático de Rostros</h2>
+      <!-- 1. EDITOR FOTOCHECK (privado) -->
+      <article class="project rv" data-cat="ia auto">
+        <div class="p-media">
+          <div class="shot" data-cap="Editor de fotos de identificación — interfaz principal">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <img src="assets/images/editor-fotocheck/referencia.jpg" alt="Interfaz del editor de fotos de identificación">
+            <div class="ph">Captura pendiente<b>assets/images/editor-fotocheck/referencia.jpg</b></div>
+          </div>
+          <p class="ref">Imagen referencial de la interfaz</p>
+        </div>
+        <div class="p-body">
+          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">01</span></div>
+          <h3>Editor Inteligente de Fotos de Identificación</h3>
+          <p>Herramienta para preparar fotos de fotocheck y fotocarnet en segundos. Convierte fotos difíciles —selfies, baja calidad, fondos irregulares— en fotos de identificación listas para imprimir, manteniendo el control del usuario en cada paso.</p>
+          <ul class="feat">
+            <li>Procesa fotos complejas: selfies, poca luz o baja resolución</li>
+            <li>Recorte configurable con proporciones de identificación</li>
+            <li>Vista previa de cada cambio antes de aplicarlo</li>
+            <li>Flujo rápido pensado para alto volumen de fotos</li>
+            <li>Versión de escritorio para procesamiento masivo (en desarrollo)</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>OpenCV</span><span>IA</span><span>Procesamiento de imagen</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Editor%20de%20Fotos">Solicitar demo</a></div>
+        </div>
+      </article>
 
-    <p>
-        Aplicación desarrollada en Python que permite reproducir videos y aplicar difuminado
-        a formas o rostros mediante tecnología de difuminado manual o automático con inteligencia artificial,
-        con el objetivo de proteger la identidad de las personas.
-    </p>
-    
-    <p><b>Características:</b></p>
-    <ul style="text-align:left; display:inline-block;">
-        <li>Detección automática de formas y rostros mediante inteligencia artificial con YOLOv8</li>
-        <li>Difuminado manual con seguimiento (tracking) de objetos</li>
-        <li>Control rápido de reproducción de video: play, pausa, velocidad hasta x16, saltos por bloques de frames, frame anterior y siguiente</li>
-        <li>Captura de frames como imágenes para posterior entrenamiento de modelos de IA</li>
-        <li>Guardado del progreso de difuminado en archivos JSON, permitiendo continuar el trabajo sin reprocesar el video</li>
-        <li>Exportación de video utilizando FFmpeg con soporte GPU (DirectML)</li>
-        <li>Aplicación optimizada para equipos de bajo rendimiento, con capacidad de funcionamiento utilizando solo CPU sin necesidad de GPU dedicada</li>
-    </ul>
+      <!-- 2. VIDEOEDITOR DIFUMINADOR (open source) -->
+      <article class="project rv" data-cat="ia">
+        <div class="p-media">
+          <div class="shot" data-cap="Editor de video — interfaz">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <img src="assets/images/videoeditor-difuminador/interfaz.png" alt="Interfaz del editor de video">
+            <div class="ph">Captura pendiente</div>
+          </div>
+          <div class="thumbs">
+            <div class="shot" data-cap="Difuminado automático con IA"><img src="assets/images/videoeditor-difuminador/demo1.png" alt="Demo 1"><div class="ph"></div></div>
+            <div class="shot" data-cap="Difuminado con seguimiento"><img src="assets/images/videoeditor-difuminador/demo2.png" alt="Demo 2"><div class="ph"></div></div>
+          </div>
+        </div>
+        <div class="p-body">
+          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">02</span></div>
+          <h3>Editor de Video con Difuminado de Rostros</h3>
+          <p>Aplicación para reproducir videos y difuminar rostros o formas de forma manual o automática con IA, protegiendo la identidad de las personas en grabaciones.</p>
+          <ul class="feat">
+            <li>Detección automática de rostros y formas con YOLOv8</li>
+            <li>Difuminado manual con seguimiento (tracking) de objetos</li>
+            <li>Reproducción hasta x16, saltos por bloques y frame a frame</li>
+            <li>Progreso guardado en JSON para continuar sin reprocesar</li>
+            <li>Exportación con FFmpeg y aceleración GPU (DirectML), o solo CPU</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>YOLO</span><span>OpenCV</span><span>PyTorch</span><span>FFmpeg</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" target="_blank" href="https://github.com/luisdl-dev/videoeditor-difuminador">Ver en GitHub ↗</a></div>
+        </div>
+      </article>
 
-    <p style="font-size:14px; color:#8b949e;">
-    Nota: Para obtener detecciones automáticas más precisas en videos complejos (por ejemplo, cámaras CCTV),
-    el modelo de inteligencia artificial puede requerir la asistencia del desarrollador para el entrenamiento
-    o ajuste utilizando imágenes del video a procesar. En estos casos se recomienda contactar al correo del desarrollador.
-    </p>
-    
-    <p><b>Tecnologías:</b> Python, YOLO, OpenCV, PyTorch, FFmpeg</p>
-	
-    <div style="display:flex; flex-direction:column; gap:15px; align-items:center;">
-		<img src="assets/images/videoeditor-difuminador/interfaz.png" alt="Interfaz" width="600">
-		<img src="assets/images/videoeditor-difuminador/demo1.png" alt="Demo 1" width="600">
-		<img src="assets/images/videoeditor-difuminador/demo2.png" alt="Demo 2" width="600">
-	</div>
+      <!-- 3. CANDADO (privado) -->
+      <article class="project rv" data-cat="sec">
+        <div class="p-media">
+          <div class="shot" data-cap="Candado — teclado numérico aleatorio">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <img src="assets/images/candado/referencia.jpg" alt="Teclado numérico aleatorio del candado">
+            <div class="ph">Captura pendiente<b>assets/images/candado/referencia.jpg</b></div>
+          </div>
+          <p class="ref">Imagen referencial de la interfaz</p>
+        </div>
+        <div class="p-body">
+          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">03</span></div>
+          <h3>Candado: Bloqueo de Carpetas con PIN</h3>
+          <p>Aplicación de escritorio para Windows que oculta y protege carpetas de trabajo en equipos compartidos, sin instalar software adicional ni mover los archivos de lugar.</p>
+          <ul class="feat">
+            <li>Teclado numérico en pantalla con orden aleatorio (anti-keylogger)</li>
+            <li>La clave se guarda solo como hash, nunca en texto plano</li>
+            <li>Historial de intentos de acceso con fecha y hora</li>
+            <li>Bloqueo y autodestrucción tras 100 intentos fallidos</li>
+            <li>Ejecutable portable (.exe), sin instalación</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>Hashing</span><span>PyInstaller</span><span>Windows</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Candado">Solicitar demo</a></div>
+        </div>
+      </article>
 
-    <p><a href="https://github.com/luisdl-dev/videoeditor-difuminador" target="_blank">
-        Ver proyecto
-    </a></p>
-</div>
-    
-<div class="card">
-    <h2>Detección de Movimiento en Videos largos con Inteligencia Artificial</h2>
+      <!-- 4. DETECCIÓN DE MOVIMIENTO (open source) -->
+      <article class="project rv" data-cat="ia sec">
+        <div class="p-media">
+          <div class="shot" data-cap="Detección de movimiento — interfaz">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <img src="assets/images/video-mov-deteccion/interfaz.png" alt="Interfaz de detección de movimiento">
+            <div class="ph">Captura pendiente</div>
+          </div>
+        </div>
+        <div class="p-body">
+          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">04</span></div>
+          <h3>Detección de Movimiento en Videos Largos con IA</h3>
+          <p>Analiza horas de grabación de videovigilancia y extrae automáticamente solo los momentos relevantes: movimiento, personas o rostros.</p>
+          <ul class="feat">
+            <li>Detección de movimiento con algoritmo MOG2</li>
+            <li>Detección de personas con modelo optimizado en OpenVINO</li>
+            <li>Extracción automática de imágenes con marca de tiempo</li>
+            <li>Redimensionado para generar datasets de entrenamiento</li>
+            <li>Interfaz gráfica en PyQt, optimizada para CPU</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>OpenCV</span><span>OpenVINO</span><span>NumPy</span><span>PyQt</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" target="_blank" href="https://github.com/luisdl-dev/video-mov-deteccion">Ver en GitHub ↗</a></div>
+        </div>
+      </article>
 
-    <p>
-        Herramienta desarrollada en Python para analizar grabaciones de video y extraer automáticamente 
-        imágenes relevantes cuando ocurre movimiento o se detecta la presencia de personas o rostros.
-    </p>
+      <!-- 5. WHATSAPP BOT (privado) -->
+      <article class="project rv noimg" data-cat="auto ia">
+        <div class="p-body">
+          <div class="p-top"><span class="badge new">Nuevo</span><span class="badge lock">🔒 Código privado</span><span class="p-num">05</span></div>
+          <h3>Automatizador de Mensajes de WhatsApp con IA</h3>
+          <p>Bot que envía mensajes programados a varios grupos de WhatsApp, espera las respuestas dentro de una ventana de tiempo y las interpreta con inteligencia artificial local, sin intervención manual.</p>
+          <ul class="feat">
+            <li>Envío automático de mensajes programados a múltiples grupos</li>
+            <li>Lectura de respuestas dentro de una ventana de tiempo configurable</li>
+            <li>Clasificación de respuestas con IA local (sin enviar datos a la nube)</li>
+            <li>Seguimiento y control de grupos de WhatsApp</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>WhatsApp Web</span><span>IA local</span><span>LLM</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" href="mailto:luisdelatorrepalomino@gmail.com?subject=Demo%20Automatizador%20WhatsApp">Solicitar demo</a></div>
+        </div>
+      </article>
 
-    <p>
-        El sistema combina detección de movimiento mediante OpenCV con modelos optimizados de 
-        inteligencia artificial utilizando OpenVINO, permitiendo filtrar eventos reales dentro 
-        de largas grabaciones de videovigilancia.
-    </p>
+      <!-- 6. MONITOREO NVR (open source) -->
+      <article class="project rv" data-cat="auto sec">
+        <div class="p-media">
+          <div class="shot" data-cap="Alerta de desconexión en Telegram">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <img src="assets/images/monitoreo-camaras/alerta.jpg" alt="Alerta de Telegram">
+            <div class="ph">Captura pendiente<b>assets/images/monitoreo-camaras/alerta.jpg</b></div>
+          </div>
+          <p class="ref">Imagen referencial de la interfaz</p>
+        </div>
+        <div class="p-body">
+          <div class="p-top"><span class="badge open">Código abierto</span><span class="p-num">06</span></div>
+          <h3>Monitoreo de Desconexiones de NVR y Cámaras</h3>
+          <p>Supervisa múltiples rangos de IP en la red local —NVRs y cámaras de videovigilancia— y avisa por Telegram cuando un equipo permanece caído más del tiempo configurado.</p>
+          <ul class="feat">
+            <li>Monitoreo concurrente de decenas de dispositivos</li>
+            <li>Detección de fallas de conectividad en tiempo real</li>
+            <li>Alertas automáticas por Telegram con umbral configurable</li>
+          </ul>
+          <div class="stack"><span>Python</span><span>Redes</span><span>Concurrencia</span><span>Telegram API</span></div>
+          <div class="p-actions"><a class="btn btn-ghost" target="_blank" href="https://github.com/luisdl-dev/seguimiento-desconexion-camaras-ip">Ver en GitHub ↗</a></div>
+        </div>
+      </article>
 
-    <p><b>Características:</b></p>
+    </div>
+  </div>
+</section>
 
-    <ul style="text-align:left; display:inline-block;">
-        <li>Detección de movimiento utilizando algoritmo MOG2</li>
-        <li>Detección de personas mediante modelo de inteligencia artificial optimizado con OpenVINO</li>
-        <li>Detección de rostros en el video</li>
-        <li>Extracción automática de imágenes cuando ocurre un evento relevante</li>
-        <li>Opciones de redimensionado para generar datasets de entrenamiento</li>
-        <li>Marca de tiempo (timestamp) en cada imagen generada</li>
-        <li>Interfaz gráfica desarrollada con PyQt para facilitar el uso</li>
-        <li>Optimizado para funcionar en CPU de equipos de bajo rendimiento.</li>
-    </ul>
+<!-- ================= HABILIDADES ================= -->
+<section id="habilidades" style="padding-top:20px">
+  <div class="wrap">
+    <div class="head rv">
+      <span class="eyebrow">// HABILIDADES</span>
+      <h2>Lo que hago</h2>
+      <p class="sub">Del problema a una herramienta que la gente realmente usa.</p>
+    </div>
+    <div class="skills">
+      <div class="skill rv">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg></div>
+        <h4>Visión por computadora</h4><p>Detección de personas, rostros y movimiento con YOLO, OpenCV y OpenVINO.</p>
+      </div>
+      <div class="skill rv d1">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></div>
+        <h4>Automatización</h4><p>Scripts, bots y flujos RPA que eliminan tareas repetitivas.</p>
+      </div>
+      <div class="skill rv d2">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div>
+        <h4>Apps de escritorio</h4><p>Interfaces gráficas en Python, empaquetadas como ejecutables portables.</p>
+      </div>
+      <div class="skill rv d3">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h4>Tecnología para seguridad</h4><p>CCTV, monitoreo de red y control de accesos aplicados a operaciones reales.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <p><b>Tecnologías:</b> Python, OpenCV, OpenVINO, NumPy, PyQt</p>
-	
-	<div style="display:flex; flex-direction:column; gap:15px; align-items:center;">
-		<img src="assets/images/video-mov-deteccion/interfaz.png" alt="Interfaz" width="600">
-	</div>
-	
-    <a href="https://github.com/luisdl-dev/video-mov-deteccion" target="_blank">
-        Ver proyecto
-    </a>
-</div>
- 
-<div class="card">
-    <h2>Monitorear Desconexiones de NVR y Cámaras</h2>
+<!-- ================= CONTACTO ================= -->
+<section id="contacto" style="padding-top:20px">
+  <div class="wrap">
+    <div class="contact rv">
+      <span class="eyebrow">// CONTACTO</span>
+      <h2>¿Tienes un proceso que se puede automatizar?</h2>
+      <p class="sub">Escríbeme y conversemos. Puedo mostrarte una demo de cualquiera de estos proyectos.</p>
+      <a class="mail" href="mailto:luisdelatorrepalomino@gmail.com">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+        luisdelatorrepalomino@gmail.com
+      </a>
+      <div style="margin-top:22px"><a class="btn btn-ghost" target="_blank" href="https://github.com/luisdl-dev">GitHub ↗</a></div>
+    </div>
+  </div>
+</section>
 
-    <p>
-        Proyecto desarrollado en Python para Windows que supervisa múltiples rangos de direcciones IP 
-        dentro de una red local, incluyendo dispositivos críticos como NVRs y cámaras de videovigilancia.
-    </p>
+<footer>© <span id="yr"></span> Luis de la Torre Palomino · Diseñado y desarrollado por mí.</footer>
 
-    <p>
-        El sistema detecta en tiempo real fallas de conectividad y, cuando una IP permanece inaccesible 
-        durante un tiempo configurable, envía una alerta automática a través de Telegram.
-    </p>
+<div id="lb"><img alt=""><small></small></div>
 
-    <p>
-        Implementa monitoreo concurrente para garantizar eficiencia incluso al supervisar decenas 
-        de dispositivos simultáneamente.
-    </p>
+<script>
+// Nav background on scroll
+const nav=document.getElementById('nav');
+addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>20),{passive:true});
+document.getElementById('yr').textContent=new Date().getFullYear();
 
-    <a href="https://github.com/luisdl-dev/seguimiento-desconexion-camaras-ip" target="_blank">
-        Ver proyecto
-    </a>
-</div>
+// Typed roles
+const roles=['Automatización','Inteligencia Artificial','Visión por Computadora','Apps de Escritorio y Web'];
+const el=document.getElementById('typed');let ri=0,ci=0,del=false;
+(function type(){const w=roles[ri];el.textContent=w.slice(0,ci);
+  if(!del&&ci<w.length){ci++;setTimeout(type,70)}
+  else if(!del){del=true;setTimeout(type,1800)}
+  else if(ci>0){ci--;setTimeout(type,35)}
+  else{del=false;ri=(ri+1)%roles.length;setTimeout(type,300)}})();
 
+// Reveal + counters
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;e.target.classList.add('in');
+  e.target.querySelectorAll('[data-count]').forEach(n=>{const t=+n.dataset.count,s=n.dataset.suffix||'';let v=0;const st=Math.max(1,Math.ceil(t/40));
+    const iv=setInterval(()=>{v=Math.min(t,v+st);n.textContent=v+s;if(v>=t)clearInterval(iv)},30)});
+  io.unobserve(e.target)}),{threshold:.15});
+document.querySelectorAll('.rv').forEach(n=>io.observe(n));
+
+// Missing screenshots -> placeholder
+document.querySelectorAll('.shot img').forEach(img=>{
+  const miss=()=>img.closest('.shot').classList.add('missing');
+  if(img.complete&&img.naturalWidth===0)miss();img.addEventListener('error',miss)});
+
+// Lightbox
+const lb=document.getElementById('lb'),lbi=lb.querySelector('img'),lbc=lb.querySelector('small');
+document.querySelectorAll('.shot').forEach(s=>s.addEventListener('click',()=>{if(s.classList.contains('missing'))return;
+  const i=s.querySelector('img');lbi.src=i.src;lbc.textContent=s.dataset.cap||i.alt;lb.classList.add('on')}));
+lb.addEventListener('click',()=>lb.classList.remove('on'));
+addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('on')});
+
+// Card spotlight
+document.querySelectorAll('.project').forEach(c=>c.addEventListener('mousemove',e=>{const r=c.getBoundingClientRect();
+  c.style.setProperty('--mx',e.clientX-r.left+'px');c.style.setProperty('--my',e.clientY-r.top+'px')}));
+
+// Filters
+document.querySelectorAll('#filters button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  const f=b.dataset.f;document.querySelectorAll('.project').forEach(p=>p.classList.toggle('hide',f!=='all'&&!p.dataset.cat.split(' ').includes(f)))}));
+
+// Hero network canvas
+(()=>{const c=document.getElementById('net'),x=c.getContext('2d');if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+let W,H,P=[];const N=()=>Math.min(80,Math.floor(innerWidth/18));
+function size(){W=c.width=c.offsetWidth*devicePixelRatio;H=c.height=c.offsetHeight*devicePixelRatio;
+  P=Array.from({length:N()},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35*devicePixelRatio,vy:(Math.random()-.5)*.35*devicePixelRatio}))}
+size();addEventListener('resize',size);
+const m={x:-1e4,y:-1e4};c.parentElement.addEventListener('mousemove',e=>{const r=c.getBoundingClientRect();m.x=(e.clientX-r.left)*devicePixelRatio;m.y=(e.clientY-r.top)*devicePixelRatio});
+const D=140*devicePixelRatio;
+(function f(){x.clearRect(0,0,W,H);
+  for(const p of P){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1}
+  for(let i=0;i<P.length;i++){const a=P[i];
+    for(let j=i+1;j<P.length;j++){const b=P[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<D){x.strokeStyle=`rgba(76,201,240,${.18*(1-d/D)})`;x.lineWidth=devicePixelRatio;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}
+    const dm=Math.hypot(a.x-m.x,a.y-m.y);
+    if(dm<D*1.4){x.strokeStyle=`rgba(124,92,255,${.5*(1-dm/(D*1.4))})`;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(m.x,m.y);x.stroke()}
+    x.fillStyle='rgba(160,200,255,.7)';x.beginPath();x.arc(a.x,a.y,1.6*devicePixelRatio,0,7);x.fill()}
+  requestAnimationFrame(f)})();})();
+</script>
 </body>
 </html>
