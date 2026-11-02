@@ -1,6 +1,6 @@
 /* Motor de procesamiento: corre en un Web Worker, 100% en el navegador.
  * Pipeline (equivalente al script de escritorio v9):
- *   1) Segmentación con u2net_human_seg
+ *   1) Segmentación con ormbg (2024, ISNet reentrenado solo con personas)
  *   2) Refinado de bordes por color + guided filter (reemplazo del matting)
  *   3) Limpieza de máscara (componente principal, huecos pequeños, suavizado)
  *   4) Detección de rostro YuNet
@@ -8,9 +8,9 @@
  */
 importScripts("../vendor/ort.wasm.min.js");
 
-const MODEL_VERSION = "v4";   // subir este número si se cambian los modelos (invalida la caché)
+const MODEL_VERSION = "v5";   // subir este número si se cambian los modelos (invalida la caché)
 const MODELS = {
-  human: { url: "../models/seg_human_int8.onnx", size: 44212602 },
+  seg: { url: "../models/seg_ormbg_int8.onnx", size: 46360719 },
   yunet: { url: "../models/yunet.onnx", size: 229657 },
 };
 
@@ -67,9 +67,9 @@ async function loadModels() {
   let loaded = 0;
   const onBytes = (n) => { loaded += n; post("progress", { loaded, total }); };
   const opts = { executionProviders: ["wasm"], graphOptimizationLevel: "all", logSeverityLevel: 3 };
-  const [h, y] = await Promise.all(["human", "yunet"].map((k) => fetchModel(k, onBytes)));
+  const [h, y] = await Promise.all(["seg", "yunet"].map((k) => fetchModel(k, onBytes)));
   sessions = {
-    human: await ort.InferenceSession.create(h, opts),
+    seg: await ort.InferenceSession.create(h, opts),
     yunet: await ort.InferenceSession.create(y, opts),
   };
 }
@@ -93,11 +93,11 @@ function grayToCanvas(gray, w, h) {
 }
 
 // ── Segmentación ────────────────────────────────────────────────────────────
-async function segment(session, srcCanvas, size, mean, std) {
+async function segment(session, srcCanvas, size, mean, std, escala = 0) {
   const px = pixels(drawTo(srcCanvas, size, size));
   const n = size * size;
-  let mx = 1e-6;
-  for (let k = 0; k < px.length; k += 4) mx = Math.max(mx, px[k], px[k + 1], px[k + 2]);
+  let mx = escala;   // 0 = normalizar por el máximo (estilo rembg)
+  if (!mx) { mx = 1e-6; for (let k = 0; k < px.length; k += 4) mx = Math.max(mx, px[k], px[k + 1], px[k + 2]); }
   const t = new Float32Array(3 * n);
   for (let k = 0, p = 0; k < n; k++, p += 4) {
     t[k] = (px[p] / mx - mean[0]) / std[0];
@@ -344,7 +344,7 @@ async function processPhoto(bitmap, outW, outH) {
   const n = W * H;
 
   post("stage", { text: "Separando a la persona del fondo…" });
-  const mh = await segment(sessions.human, src, 320, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
+  const mh = await segment(sessions.seg, src, 1024, [0, 0, 0], [1, 1, 1], 255);
 
   post("stage", { text: "Afinando bordes y cabello…" });
   const gray = new Uint8Array(n);
