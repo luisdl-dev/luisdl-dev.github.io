@@ -152,6 +152,7 @@ h1 {
   .window, .fill { transition: none; }
 }
 
+.foot p.ver { padding-top: 0; font-size: .8125rem; }
 .foot a { color: var(--cobalt); font-weight: 600; text-underline-offset: 3px; }
 
 /* ── Tamaño de salida ───────────────────────────────────────────────────── */
