@@ -27,7 +27,11 @@ const FACE_HEIGHT_RATIO_YUNET = 0.30;
 const CHIN_MARGIN = 0.25;
 const SIDE_MARGIN = 0.03;
 const HOLE_FILL_MAX_RATIO = 0.02;
-const COMBINE_THRESHOLD_PCT = 1.8;
+const COMBINE_THRESHOLD_PCT = 1.8;   // discrepancia mínima para combinar con isnet
+const COMBINE_MAX_PCT = 10;          // por encima, los modelos discrepan demasiado: no combinar
+const ISNET_INDECISO_MAX = 25;       // % de píxeles indecisos de isnet cerca de la persona.
+                                     // Fondos con textura (setos, plantas) la confunden: ahí
+                                     // combinar le hace huecos a la ropa y al cabello.
 const YUNET_SCORE_MIN = 0.6;
 
 let sessions = null;
@@ -352,7 +356,14 @@ async function processPhoto(bitmap, outW, outH) {
   let pers = 0, rej = 0;
   for (let q = 0; q < n; q++) if (mh[q] > 127) { pers++; if (mi[q] <= 127) rej++; }
   const disc = (rej / Math.max(1, pers)) * 100;
-  const combinado = disc >= COMBINE_THRESHOLD_PCT;
+  // ¿isnet está segura de lo que ve? Se mide su indecisión en la zona de la persona
+  const bin = new Float32Array(n);
+  for (let q = 0; q < n; q++) bin[q] = mh[q] > 127 ? 1 : 0;
+  const near = boxFilter(bin, W, H, Math.max(3, Math.round(Math.max(W, H) / 85)));
+  let zona = 0, indeciso = 0;
+  for (let q = 0; q < n; q++) if (near[q] > 1e-6) { zona++; if (mi[q] > 25 && mi[q] < 230) indeciso++; }
+  const isnetIndeciso = (indeciso / Math.max(1, zona)) * 100;
+  const combinado = disc >= COMBINE_THRESHOLD_PCT && disc <= COMBINE_MAX_PCT && isnetIndeciso <= ISNET_INDECISO_MAX;
 
   post("stage", { text: "Afinando bordes y cabello…" });
   const gray = new Uint8Array(n);
@@ -379,7 +390,7 @@ async function processPhoto(bitmap, outW, outH) {
   const full = new OffscreenCanvas(W, H);
   full.getContext("2d").putImageData(new ImageData(comp, W, H), 0, 0);
   last = { full, W, H, face, pb: face ? personBBox(comp, W, H) : null,
-           ms: Math.round(performance.now() - t0), combinado, disc };
+           ms: Math.round(performance.now() - t0), combinado, disc, isnetIndeciso };
   return render(outW, outH);
 }
 
@@ -407,7 +418,7 @@ async function render(outW, outH) {
   return {
     blob,
     info: {
-      ms: last.ms, fondoDificil: last.combinado, discrepancia: Math.round(last.disc * 10) / 10,
+      ms: last.ms, fondoDificil: last.combinado, discrepancia: Math.round(last.disc * 10) / 10, isnetIndeciso: Math.round(last.isnetIndeciso * 10) / 10,
       rostro: !!face, modo: rect.modo, rect, size: [W, H], face, salida: [outW, outH],
     },
   };
