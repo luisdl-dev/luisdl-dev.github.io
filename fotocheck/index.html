@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Foto para fotocheck</title>
-  <meta name="description" content="Convierte cualquier foto en una foto de fotocheck 480 × 640 con fondo blanco y el rostro bien encuadrado. Se procesa en tu navegador: la foto no se sube a ningún servidor.">
+  <meta name="description" content="Convierte cualquier foto en una foto de fotocheck (480 × 640 o tamaño personalizado) con fondo blanco y el rostro bien encuadrado. Se procesa en tu navegador: la foto no se sube a ningún servidor.">
   <script src="coi-serviceworker.min.js"></script>
   <link rel="preload" href="fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
@@ -22,7 +22,7 @@
   <main class="hero">
     <section class="pitch">
       <h1>Tu foto para fotocheck, lista en un clic</h1>
-      <p class="lede">Sube una foto y obtén una de <strong>480 × 640</strong> con fondo blanco, el rostro centrado y sin deformar.</p>
+      <p class="lede">Sube una foto y obtén una con fondo blanco, el rostro centrado y sin deformar, en <strong>480 × 640</strong> o el tamaño que necesites.</p>
       <ul class="facts">
         <li>Quita el fondo cuidando el cabello y la ropa</li>
         <li>Encuadra según la altura real de la cabeza</li>
@@ -37,13 +37,22 @@
         <div class="window" id="drop" tabindex="0" role="button" aria-describedby="drop-hint">
           <div class="empty" id="empty">
             <svg viewBox="0 0 48 64" aria-hidden="true"><circle cx="24" cy="24" r="10"/><path d="M6 60c2-12 9-18 18-18s16 6 18 18"/></svg>
-            <p id="drop-hint">Arrastra una foto aquí<br>o <span class="link">elige un archivo</span></p>
+            <p id="drop-hint">Arrastra una foto aquí<span class="paste-hint">, pégala con <kbd id="paste-key">Ctrl + V</kbd></span><br>o <span class="link">elige un archivo</span></p>
           </div>
           <img id="result" alt="Foto procesada de 480 por 640" hidden>
           <div class="busy" id="busy" hidden>
             <div class="bar"><div class="fill" id="fill"></div></div>
             <p id="stage">Preparando…</p>
           </div>
+        </div>
+        <div class="size" role="group" aria-labelledby="size-label">
+          <span id="size-label" class="size-label">Tamaño</span>
+          <label class="field"><span class="sr">Ancho en píxeles</span><input id="out-w" type="number" inputmode="numeric" min="64" max="4000" step="1" value="480" aria-describedby="size-help"></label>
+          <span class="times" aria-hidden="true">×</span>
+          <label class="field"><span class="sr">Alto en píxeles</span><input id="out-h" type="number" inputmode="numeric" min="64" max="4000" step="1" value="640" aria-describedby="size-help"></label>
+          <span class="unit">px</span>
+          <button type="button" class="reset-size" id="reset-size" hidden>Volver a 480 × 640</button>
+          <span id="size-help" class="sr">Ancho y alto entre 64 y 4000 píxeles. El recorte usa esta proporción.</span>
         </div>
         <div class="badge-foot">
           <div class="meta" id="meta" aria-live="polite">Sale en 480 × 640, formato JPG</div>
@@ -61,9 +70,9 @@
   <section class="how">
     <h2>Cómo funciona</h2>
     <ol>
-      <li><strong>Sube la foto.</strong> Sirve una selfie, una foto de celular o una escaneada.</li>
+      <li><strong>Sube o pega la foto.</strong> Sirve una selfie, una foto de celular, una escaneada o una captura de pantalla.</li>
       <li><strong>Se procesa en tu equipo.</strong> Se separa a la persona del fondo, se afinan los bordes y se detecta el rostro.</li>
-      <li><strong>Descarga el JPG.</strong> Sale en 480 × 640 con el mismo nombre de tu archivo, listo para el sistema de credenciales.</li>
+      <li><strong>Descarga el JPG.</strong> Sale en el tamaño que elegiste (480 × 640 por defecto) y con el mismo nombre de tu archivo.</li>
     </ol>
   </section>
 

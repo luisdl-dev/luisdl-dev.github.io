@@ -153,3 +153,28 @@ h1 {
 }
 
 .foot a { color: var(--cobalt); font-weight: 600; text-underline-offset: 3px; }
+
+/* ── Tamaño de salida ───────────────────────────────────────────────────── */
+.size { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: 1rem; }
+.size-label { font-size: .875rem; font-weight: 650; margin-right: .25rem; }
+.field input {
+  width: 5.25rem; font: inherit; font-size: .9375rem; font-variant-numeric: tabular-nums;
+  padding: .45rem .6rem; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+}
+.field input:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 1px; border-color: var(--cobalt); }
+.field input[aria-invalid="true"] { border-color: #B42318; }
+.times, .unit { color: var(--muted); font-size: .9375rem; }
+.reset-size {
+  font: inherit; font-size: .8125rem; font-weight: 600; color: var(--cobalt); background: none; border: 0;
+  padding: .25rem; margin-left: auto; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.reset-size:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; border-radius: 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+kbd {
+  font: inherit; font-size: .875em; font-weight: 600; color: var(--ink);
+  padding: .05rem .35rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: #fff;
+}
+#result { object-fit: contain; }
+.window { max-height: 70vh; }
+kbd { white-space: nowrap; }
+@media (pointer: coarse) { .paste-hint { display: none; } }

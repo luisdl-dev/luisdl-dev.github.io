@@ -4,7 +4,7 @@
  *   2) Refinado de bordes por color + guided filter (reemplazo del matting)
  *   3) Limpieza de máscara (componente principal, huecos pequeños, suavizado)
  *   4) Detección de rostro YuNet
- *   5) Recorte 3:4 por altura de cabeza -> 480x640
+ *   5) Recorte por altura de cabeza al tamaño elegido (480x640 por defecto)
  */
 importScripts("../vendor/ort.wasm.min.js");
 
@@ -16,7 +16,8 @@ const MODELS = {
 };
 
 // ── Configuración (mismos valores que el script de escritorio) ──────────────
-const TARGET_W = 480, TARGET_H = 640, TARGET_RATIO = TARGET_W / TARGET_H;
+const DEFAULT_W = 480, DEFAULT_H = 640;
+const MIN_LADO_SALIDA = 64, MAX_LADO_SALIDA = 4000;
 const MAX_LADO = 1600;
 const HEAD_HEIGHT_RATIO = 0.58;
 const HEAD_SPACE_RATIO = 0.06;
@@ -30,6 +31,7 @@ const COMBINE_THRESHOLD_PCT = 1.8;
 const YUNET_SCORE_MIN = 0.6;
 
 let sessions = null;
+let last = null;   // última foto ya sin fondo: permite cambiar el tamaño sin reprocesar
 
 ort.env.wasm.wasmPaths = "../vendor/";
 ort.env.logLevel = "error";
@@ -282,48 +284,60 @@ function personBBox(rgba, W, H) {
   return maxX < 0 ? null : { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
 }
 
-function cropRect(W, H, face, pb) {
+function cropRect(W, H, face, pb, RATIO) {
   const { x: fx, y: fy, w: fw, h: fh } = face;
   const fxc = fx + fw / 2, fyc = fy + fh / 2;
   let modo = "normal", ch, cw;
   const headH = pb ? fy + fh - pb.y : null;
   if (headH !== null && headH > 0) { ch = headH / HEAD_HEIGHT_RATIO; modo = "por altura de cabeza"; }
   else ch = fh / FACE_HEIGHT_RATIO_YUNET;
-  cw = ch * TARGET_RATIO;
+  cw = ch * RATIO;
   if (pb) {
     const pwm = pb.w * (1 + 2 * SIDE_MARGIN);
-    if (pwm < cw) { cw = pwm; ch = cw / TARGET_RATIO; modo = "ajustado al ancho de la persona"; }
+    if (pwm < cw) { cw = pwm; ch = cw / RATIO; modo = "ajustado al ancho de la persona"; }
   }
-  if (ch > H) { ch = H; cw = ch * TARGET_RATIO; }
-  if (cw > W) { cw = W; ch = cw / TARGET_RATIO; }
+  if (ch > H) { ch = H; cw = ch * RATIO; }
+  if (cw > W) { cw = W; ch = cw / RATIO; }
   let top;
   if (pb) top = Math.min(pb.y - HEAD_SPACE_RATIO * ch, fy - HEAD_TOP_MARGIN * ch);
   else top = fyc - FACE_CENTER_Y_RATIO * ch;
   const need = fy + fh + CHIN_MARGIN * fh;
-  if (top + ch < need) { ch = need - top; cw = ch * TARGET_RATIO; modo += " + ampliado"; }
+  if (top + ch < need) { ch = need - top; cw = ch * RATIO; modo += " + ampliado"; }
   if (pb) {
     const pBottom = pb.y + pb.h;
     if (pBottom < H - 1) {
       const disp = pBottom - Math.max(0, top);
-      if (disp > 0 && disp < ch) { ch = disp; cw = ch * TARGET_RATIO; modo += " + sin banda inferior"; }
+      if (disp > 0 && disp < ch) { ch = disp; cw = ch * RATIO; modo += " + sin banda inferior"; }
     }
   }
-  if (ch > H) { ch = H; cw = ch * TARGET_RATIO; }
-  if (cw > W) { cw = W; ch = cw / TARGET_RATIO; }
+  if (ch > H) { ch = H; cw = ch * RATIO; }
+  if (cw > W) { cw = W; ch = cw / RATIO; }
   let left = fxc - cw / 2;
   top = Math.max(0, Math.min(top, H - ch));
   left = Math.max(0, Math.min(left, W - cw));
+  // Formatos más anchos que la foto (p. ej. horizontal desde una foto vertical):
+  // si limitar el ancho dejó el mentón fuera, se prioriza la cabeza completa y se
+  // extiende con blanco a los costados (el fondo ya es blanco, no se nota).
+  if (top + ch < need && ch < H) {
+    ch = Math.min(H, need - top);
+    top = Math.max(0, Math.min(top, H - ch));
+    if (top + ch < need) { top = Math.max(0, need - ch); }
+    cw = ch * RATIO;
+    left = fxc - cw / 2;
+    if (cw <= W) left = Math.max(0, Math.min(left, W - cw));
+    modo += " + relleno lateral";
+  }
   return { x0: Math.round(left), y0: Math.round(top), x1: Math.round(left + cw), y1: Math.round(top + ch), modo };
 }
 
-function fallbackRect(W, H) {
-  if (W / H > TARGET_RATIO) { const nw = Math.trunc(H * TARGET_RATIO), x0 = Math.trunc((W - nw) / 2); return { x0, y0: 0, x1: x0 + nw, y1: H, modo: "sin rostro (recorte centrado)" }; }
-  const nh = Math.trunc(W / TARGET_RATIO), y0 = Math.trunc((H - nh) / 2);
+function fallbackRect(W, H, RATIO) {
+  if (W / H > RATIO) { const nw = Math.trunc(H * RATIO), x0 = Math.trunc((W - nw) / 2); return { x0, y0: 0, x1: x0 + nw, y1: H, modo: "sin rostro (recorte centrado)" }; }
+  const nh = Math.trunc(W / RATIO), y0 = Math.trunc((H - nh) / 2);
   return { x0: 0, y0, x1: W, y1: y0 + nh, modo: "sin rostro (recorte centrado)" };
 }
 
 // ── Pipeline completo ───────────────────────────────────────────────────────
-async function processPhoto(bitmap) {
+async function processPhoto(bitmap, outW, outH) {
   const t0 = performance.now();
   let W = bitmap.width, H = bitmap.height;
   const k = Math.min(1, MAX_LADO / Math.max(W, H));
@@ -362,23 +376,39 @@ async function processPhoto(bitmap) {
 
   post("stage", { text: "Encuadrando el rostro…" });
   const face = await detectFace(comp, W, H);
-  const rect = face ? cropRect(W, H, face, personBBox(comp, W, H)) : fallbackRect(W, H);
-
   const full = new OffscreenCanvas(W, H);
   full.getContext("2d").putImageData(new ImageData(comp, W, H), 0, 0);
-  const outC = new OffscreenCanvas(TARGET_W, TARGET_H);
-  const g = outC.getContext("2d");
-  g.fillStyle = "#fff"; g.fillRect(0, 0, TARGET_W, TARGET_H);
-  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
-  g.drawImage(full, rect.x0, rect.y0, rect.x1 - rect.x0, rect.y1 - rect.y0, 0, 0, TARGET_W, TARGET_H);
-  const blob = await outC.convertToBlob({ type: "image/jpeg", quality: 0.95 });
+  last = { full, W, H, face, pb: face ? personBBox(comp, W, H) : null,
+           ms: Math.round(performance.now() - t0), combinado, disc };
+  return render(outW, outH);
+}
 
+function sizeOK(w, h) {
+  return Number.isInteger(w) && Number.isInteger(h) &&
+         w >= MIN_LADO_SALIDA && h >= MIN_LADO_SALIDA && w <= MAX_LADO_SALIDA && h <= MAX_LADO_SALIDA;
+}
+
+// Recorta la última foto al tamaño pedido (rápido: no vuelve a quitar el fondo)
+async function render(outW, outH) {
+  if (!sizeOK(outW, outH)) throw new Error(`tamaño no válido (${outW} × ${outH})`);
+  const { full, W, H, face, pb } = last, ratio = outW / outH;
+  const rect = face ? cropRect(W, H, face, pb, ratio) : fallbackRect(W, H, ratio);
+  const outC = new OffscreenCanvas(outW, outH);
+  const g = outC.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, outW, outH);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+  // Se arma el recorte sobre un lienzo blanco: si sale de la foto, queda blanco
+  const cw = rect.x1 - rect.x0, ch = rect.y1 - rect.y0;
+  const crop = new OffscreenCanvas(cw, ch), cg = crop.getContext("2d");
+  cg.fillStyle = "#fff"; cg.fillRect(0, 0, cw, ch);
+  cg.drawImage(full, -rect.x0, -rect.y0);
+  g.drawImage(crop, 0, 0, cw, ch, 0, 0, outW, outH);
+  const blob = await outC.convertToBlob({ type: "image/jpeg", quality: 0.95 });
   return {
     blob,
     info: {
-      ms: Math.round(performance.now() - t0),
-      fondoDificil: combinado, discrepancia: Math.round(disc * 10) / 10,
-      rostro: !!face, modo: rect.modo, rect, size: [W, H], face,
+      ms: last.ms, fondoDificil: last.combinado, discrepancia: Math.round(last.disc * 10) / 10,
+      rostro: !!face, modo: rect.modo, rect, size: [W, H], face, salida: [outW, outH],
     },
   };
 }
@@ -390,10 +420,13 @@ self.onmessage = async (e) => {
       if (!sessions) await loadModels();
       post("ready");
     } else if (type === "process") {
-      const bitmap = e.data.bitmap;
-      const res = await processPhoto(bitmap);
+      const { bitmap, w, h } = e.data;
+      const res = await processPhoto(bitmap, w || DEFAULT_W, h || DEFAULT_H);
       bitmap.close && bitmap.close();
       post("done", res);
+    } else if (type === "resize") {
+      if (!last) return;
+      post("done", { ...(await render(e.data.w, e.data.h)), resized: true });
     }
   } catch (err) {
     post("error", { message: String(err && err.message ? err.message : err) });
