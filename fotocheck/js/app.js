@@ -93,7 +93,6 @@
       else {
         t = `Listo en ${(m.info.ms / 1000).toFixed(1).replace(".", ",")} s, ${sizeText(w, h)} px`;
         if (!m.info.rostro) t += ". No se detectó un rostro: se recortó al centro";
-        else if (m.info.fondoDificil) t += ". Fondo difícil: se combinaron dos modelos";
       }
       setMeta(t, m.info.rostro ? "ok" : "");
       // Si el tamaño cambió mientras se procesaba, ajustar al tamaño actual

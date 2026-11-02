@@ -1,6 +1,6 @@
 /* Motor de procesamiento: corre en un Web Worker, 100% en el navegador.
  * Pipeline (equivalente al script de escritorio v9):
- *   1) Segmentación con u2net_human_seg (+ isnet si el fondo es difícil)
+ *   1) Segmentación con u2net_human_seg
  *   2) Refinado de bordes por color + guided filter (reemplazo del matting)
  *   3) Limpieza de máscara (componente principal, huecos pequeños, suavizado)
  *   4) Detección de rostro YuNet
@@ -8,10 +8,9 @@
  */
 importScripts("../vendor/ort.wasm.min.js");
 
-const MODEL_VERSION = "v2";   // subir este número si se cambian los modelos (invalida la caché)
+const MODEL_VERSION = "v4";   // subir este número si se cambian los modelos (invalida la caché)
 const MODELS = {
   human: { url: "../models/seg_human_int8.onnx", size: 44212602 },
-  isnet: { url: "../models/seg_isnet_int8.onnx", size: 46360717 },
   yunet: { url: "../models/yunet.onnx", size: 229657 },
 };
 
@@ -27,11 +26,6 @@ const FACE_HEIGHT_RATIO_YUNET = 0.30;
 const CHIN_MARGIN = 0.25;
 const SIDE_MARGIN = 0.03;
 const HOLE_FILL_MAX_RATIO = 0.02;
-const COMBINE_THRESHOLD_PCT = 1.8;   // discrepancia mínima para combinar con isnet
-const COMBINE_MAX_PCT = 10;          // por encima, los modelos discrepan demasiado: no combinar
-const ISNET_INDECISO_MAX = 25;       // % de píxeles indecisos de isnet cerca de la persona.
-                                     // Fondos con textura (setos, plantas) la confunden: ahí
-                                     // combinar le hace huecos a la ropa y al cabello.
 const YUNET_SCORE_MIN = 0.6;
 
 let sessions = null;
@@ -73,10 +67,9 @@ async function loadModels() {
   let loaded = 0;
   const onBytes = (n) => { loaded += n; post("progress", { loaded, total }); };
   const opts = { executionProviders: ["wasm"], graphOptimizationLevel: "all", logSeverityLevel: 3 };
-  const [h, i, y] = await Promise.all(["human", "isnet", "yunet"].map((k) => fetchModel(k, onBytes)));
+  const [h, y] = await Promise.all(["human", "yunet"].map((k) => fetchModel(k, onBytes)));
   sessions = {
     human: await ort.InferenceSession.create(h, opts),
-    isnet: await ort.InferenceSession.create(i, opts),
     yunet: await ort.InferenceSession.create(y, opts),
   };
 }
@@ -352,28 +345,12 @@ async function processPhoto(bitmap, outW, outH) {
 
   post("stage", { text: "Separando a la persona del fondo…" });
   const mh = await segment(sessions.human, src, 320, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
-  const mi = await segment(sessions.isnet, src, 1024, [0.5, 0.5, 0.5], [1, 1, 1]);
-  let pers = 0, rej = 0;
-  for (let q = 0; q < n; q++) if (mh[q] > 127) { pers++; if (mi[q] <= 127) rej++; }
-  const disc = (rej / Math.max(1, pers)) * 100;
-  // ¿isnet está segura de lo que ve? Se mide su indecisión en la zona de la persona
-  const bin = new Float32Array(n);
-  for (let q = 0; q < n; q++) bin[q] = mh[q] > 127 ? 1 : 0;
-  const near = boxFilter(bin, W, H, Math.max(3, Math.round(Math.max(W, H) / 85)));
-  let zona = 0, indeciso = 0;
-  for (let q = 0; q < n; q++) if (near[q] > 1e-6) { zona++; if (mi[q] > 25 && mi[q] < 230) indeciso++; }
-  const isnetIndeciso = (indeciso / Math.max(1, zona)) * 100;
-  const combinado = disc >= COMBINE_THRESHOLD_PCT && disc <= COMBINE_MAX_PCT && isnetIndeciso <= ISNET_INDECISO_MAX;
 
   post("stage", { text: "Afinando bordes y cabello…" });
   const gray = new Uint8Array(n);
   for (let q = 0, p = 0; q < n; q++, p += 4) gray[q] = (rgba[p] * 299 + rgba[p + 1] * 587 + rgba[p + 2] * 114) / 1000 | 0;
   const r = Math.max(2, Math.round(Math.max(W, H) / 250));
   let alpha = guided(gray, colorMatte(rgba, mh, W, H), W, H, r);
-  if (combinado) {
-    const ai = guided(gray, colorMatte(rgba, mi, W, H), W, H, r);
-    for (let q = 0; q < n; q++) if (ai[q] < alpha[q]) alpha[q] = ai[q];
-  }
   alpha = cleanMask(alpha, W, H);
 
   const comp = new Uint8ClampedArray(n * 4);
@@ -390,7 +367,7 @@ async function processPhoto(bitmap, outW, outH) {
   const full = new OffscreenCanvas(W, H);
   full.getContext("2d").putImageData(new ImageData(comp, W, H), 0, 0);
   last = { full, W, H, face, pb: face ? personBBox(comp, W, H) : null,
-           ms: Math.round(performance.now() - t0), combinado, disc, isnetIndeciso };
+           ms: Math.round(performance.now() - t0) };
   return render(outW, outH);
 }
 
@@ -418,7 +395,7 @@ async function render(outW, outH) {
   return {
     blob,
     info: {
-      ms: last.ms, fondoDificil: last.combinado, discrepancia: Math.round(last.disc * 10) / 10, isnetIndeciso: Math.round(last.isnetIndeciso * 10) / 10,
+      ms: last.ms,
       rostro: !!face, modo: rect.modo, rect, size: [W, H], face, salida: [outW, outH],
     },
   };
