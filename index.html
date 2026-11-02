@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#07090d; --bg2:#0c1017; --card:#0f141c; --line:#1c2430; --line2:#273142;
+  --bg:#07090d; --bg2:#0c1017; --card:rgba(15,20,28,.72); --line:#1c2430; --line2:#273142;
   --text:#e6edf3; --muted:#8b97a7; --dim:#5b6676;
   --a1:#4cc9f0; --a2:#7c5cff; --a3:#2ee6a6; --warn:#ffb547;
   --grad:linear-gradient(120deg,var(--a1),var(--a2) 55%,var(--a3));
@@ -43,7 +43,9 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:6
 
 /* ---------- HERO ---------- */
 .hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:110px 0 60px;overflow:hidden}
-#net{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
+#net{position:fixed;inset:0;width:100vw;height:100vh;opacity:.7;z-index:0;pointer-events:none}
+header,section,.marquee,footer{position:relative;z-index:1}
+.marquee{background:rgba(12,16,23,.85)}
 .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.35;animation:float 16s ease-in-out infinite}
 .blob.b1{width:520px;height:520px;background:var(--a2);top:-120px;right:-120px}
 .blob.b2{width:420px;height:420px;background:var(--a1);bottom:-160px;left:-120px;animation-delay:-6s}
@@ -101,7 +103,7 @@ h2{font-family:"Space Grotesk";font-size:clamp(32px,4.4vw,52px);letter-spacing:-
 
 /* ---------- PROJECTS ---------- */
 .projects{display:flex;flex-direction:column;gap:36px}
-.project{position:relative;display:grid;grid-template-columns:1.1fr 1fr;gap:0;background:var(--card);border:1px solid var(--line);border-radius:26px;overflow:hidden;transition:border-color .3s,transform .3s}
+.project{position:relative;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);display:grid;grid-template-columns:1.1fr 1fr;gap:0;background:var(--card);border:1px solid var(--line);border-radius:26px;overflow:hidden;transition:border-color .3s,transform .3s}
 .project:nth-child(even){grid-template-columns:1fr 1.1fr}
 .project:nth-child(even) .p-media{order:2}
 .project::before{content:"";position:absolute;inset:0;background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(124,92,255,.10),transparent 40%);opacity:0;transition:opacity .3s;pointer-events:none}
@@ -110,7 +112,7 @@ h2{font-family:"Space Grotesk";font-size:clamp(32px,4.4vw,52px);letter-spacing:-
 .project.hide{display:none}
 .project.noimg,.project.noimg:nth-child(even){grid-template-columns:1fr}
 .project.noimg .p-body{max-width:820px}
-.p-media{position:relative;background:#0a0e14;padding:28px;display:flex;flex-direction:column;gap:14px;justify-content:center}
+.p-media{position:relative;background:rgba(10,14,20,.55);padding:28px;display:flex;flex-direction:column;gap:14px;justify-content:center}
 .shot{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line2);background:#0b0f15;cursor:zoom-in;box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
 .shot .bar{display:flex;gap:6px;padding:9px 12px;background:#121821;border-bottom:1px solid var(--line)}
 .shot .bar i{width:9px;height:9px;border-radius:50%;background:#2a3342}
@@ -201,6 +203,7 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
 </head>
 <body>
 
+<canvas id="net"></canvas>
 <nav id="nav">
   <div class="wrap">
     <a href="#top" class="logo">luis<span>.dev</span></a>
@@ -214,7 +217,6 @@ footer{padding:40px 0;color:var(--dim);font-size:13px;text-align:center}
 
 <!-- ================= HERO ================= -->
 <header class="hero" id="top">
-  <canvas id="net"></canvas>
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="wrap hero-grid">
     <div>
@@ -517,7 +519,7 @@ let W,H,P=[];const N=()=>Math.min(80,Math.floor(innerWidth/18));
 function size(){W=c.width=c.offsetWidth*devicePixelRatio;H=c.height=c.offsetHeight*devicePixelRatio;
   P=Array.from({length:N()},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35*devicePixelRatio,vy:(Math.random()-.5)*.35*devicePixelRatio}))}
 size();addEventListener('resize',size);
-const m={x:-1e4,y:-1e4};c.parentElement.addEventListener('mousemove',e=>{const r=c.getBoundingClientRect();m.x=(e.clientX-r.left)*devicePixelRatio;m.y=(e.clientY-r.top)*devicePixelRatio});
+const m={x:-1e4,y:-1e4};addEventListener('mousemove',e=>{m.x=e.clientX*devicePixelRatio;m.y=e.clientY*devicePixelRatio},{passive:true});document.addEventListener('mouseleave',()=>{m.x=m.y=-1e4});
 const D=140*devicePixelRatio;
 (function f(){x.clearRect(0,0,W,H);
   for(const p of P){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1}
