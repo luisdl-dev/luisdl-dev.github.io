@@ -7,7 +7,7 @@
   <meta name="description" content="Convierte cualquier foto en una foto de fotocheck (480 × 640 o tamaño personalizado) con fondo blanco y el rostro bien encuadrado. Se procesa en tu navegador: la foto no se sube a ningún servidor.">
   <script src="coi-serviceworker.min.js"></script>
   <link rel="preload" href="fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/app.css?v=2.0">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 32'%3E%3Crect x='1' y='1' width='22' height='30' rx='3' fill='%2314213A'/%3E%3Crect x='8' y='3' width='8' height='2' rx='1' fill='%23DCE2E9'/%3E%3Ccircle cx='12' cy='14' r='4' fill='%23DCE2E9'/%3E%3Cpath d='M5 26c1-5 4-7 7-7s6 2 7 7z' fill='%23DCE2E9'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -25,7 +25,7 @@
       <p class="lede">Sube una foto y obtén una con fondo blanco, el rostro centrado y sin deformar, en <strong>480 × 640</strong> o el tamaño que necesites.</p>
       <ul class="facts">
         <li>Quita el fondo cuidando el cabello y la ropa</li>
-        <li>Encuadra según la altura real de la cabeza</li>
+        <li>Encuadra según la altura real de la cabeza, para varón o mujer</li>
         <li>Funciona con selfies y fotos de baja calidad</li>
         <li>Todo ocurre en tu navegador: nada se sube a internet</li>
       </ul>
@@ -56,14 +56,16 @@
         </div>
         <div class="badge-foot">
           <div class="meta" id="meta" aria-live="polite">Sale en 480 × 640, formato JPG</div>
+          <div class="notes" id="notes" aria-live="polite" hidden></div>
           <div class="actions">
+            <button type="button" class="btn ghost" id="straight" aria-pressed="false" hidden>Ver enderezada</button>
             <button type="button" class="btn ghost" id="again" hidden>Otra foto</button>
             <a class="btn primary" id="download" hidden download>Descargar JPG</a>
           </div>
         </div>
         <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
       </div>
-      <p class="first-load" id="first-load">La primera vez se descargan los modelos (unos 46 MB). Después quedan guardados en tu navegador.</p>
+      <p class="first-load" id="first-load">La primera vez se descargan los modelos (unos 88 MB). Después quedan guardados en tu navegador.</p>
     </section>
   </main>
 
@@ -71,7 +73,7 @@
     <h2>Cómo funciona</h2>
     <ol>
       <li><strong>Sube o pega la foto.</strong> Sirve una selfie, una foto de celular, una escaneada o una captura de pantalla.</li>
-      <li><strong>Se procesa en tu equipo.</strong> Se separa a la persona del fondo, se afinan los bordes y se detecta el rostro.</li>
+      <li><strong>Se procesa en tu equipo.</strong> Se separa a la persona del fondo, se afinan los bordes y se detecta el rostro. Si la cabeza está inclinada, también tienes una versión enderezada.</li>
       <li><strong>Descarga el JPG.</strong> Sale en el tamaño que elegiste (480 × 640 por defecto) y con el mismo nombre de tu archivo.</li>
     </ol>
   </section>
@@ -81,6 +83,6 @@
     <p class="ver">Versión <span id="ver"></span></p>
   </footer>
 
-  <script src="js/app.js?v=1.3"></script>
+  <script src="js/app.js?v=2.0"></script>
 </body>
 </html>

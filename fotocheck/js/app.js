@@ -3,6 +3,7 @@
   const drop = $("drop"), file = $("file"), empty = $("empty"), result = $("result");
   const busy = $("busy"), fill = $("fill"), stage = $("stage"), meta = $("meta");
   const download = $("download"), again = $("again"), firstLoad = $("first-load");
+  const straight = $("straight"), notes = $("notes");
   const inW = $("out-w"), inH = $("out-h"), resetSize = $("reset-size"), pasteKey = $("paste-key");
 
   const DEF_W = 480, DEF_H = 640, MIN = 64, MAX = 4000;
@@ -56,10 +57,12 @@
   resetSize.addEventListener("click", () => { inW.value = DEF_W; inH.value = DEF_H; onSizeInput(); });
 
   // ── Motor ───────────────────────────────────────────────────────────────
-  const VERSION = "1.3", VERSION_FECHA = "2 nov 2026";   // subir en cada cambio publicado
+  const VERSION = "2.0", VERSION_FECHA = "3 nov 2026";   // subir en cada cambio publicado
   document.getElementById("ver").textContent = `${VERSION} (${VERSION_FECHA})`;
   const worker = new Worker(`js/worker.js?v=${VERSION}`);
-  let ready = false, working = false, pending = null, lastUrl = null;
+  let ready = false, working = false, pending = null;
+  // Resultado actual: foto normal y, si la cabeza estaba inclinada, la enderezada
+  let urls = { normal: null, corregida: null }, verCorregida = false, stem = "foto-fotocheck", grados = 0;
 
   function setMeta(text, cls) { meta.textContent = text; meta.className = "meta" + (cls ? " " + cls : ""); }
   function showBusy(text, pct) {
@@ -69,6 +72,22 @@
   }
   const hasResult = () => drop.classList.contains("has-result");
   const mb = (b) => (b / 1e6).toFixed(0);
+
+  function mostrar() {
+    const corr = verCorregida && urls.corregida;
+    const url = corr ? urls.corregida : urls.normal;
+    result.src = url; download.href = url;
+    download.setAttribute("download", stem + (corr ? "_corregida" : "") + ".jpg");
+    straight.textContent = corr ? "Ver original" : `Ver enderezada (${grados}°)`;
+    straight.setAttribute("aria-pressed", String(!!corr));
+  }
+  straight.addEventListener("click", () => { verCorregida = !verCorregida; mostrar(); });
+  function limpiarResultado() {
+    for (const k in urls) if (urls[k]) URL.revokeObjectURL(urls[k]);
+    urls = { normal: null, corregida: null };
+    result.hidden = true; empty.hidden = false; drop.classList.remove("has-result");
+    download.hidden = true; again.hidden = true; straight.hidden = true; notes.hidden = true;
+  }
 
   worker.onmessage = (e) => {
     const m = e.data;
@@ -83,11 +102,15 @@
     } else if (m.type === "done") {
       working = false; busy.hidden = true;
       window.__ultimo = m.info;   // datos del último resultado (útil para pruebas)
-      if (lastUrl) URL.revokeObjectURL(lastUrl);
-      lastUrl = URL.createObjectURL(m.blob);
-      result.src = lastUrl; result.hidden = false; empty.hidden = true;
+      for (const k in urls) if (urls[k]) URL.revokeObjectURL(urls[k]);
+      urls = { normal: URL.createObjectURL(m.blob), corregida: m.blobCorregida ? URL.createObjectURL(m.blobCorregida) : null };
+      if (!m.resized || !urls.corregida) verCorregida = false;
+      grados = m.info.corregida ? Math.abs(Math.round(m.info.corregida.angulo)) : 0;
+      straight.hidden = !urls.corregida;
+      mostrar();
+      result.hidden = false; empty.hidden = true;
       drop.classList.add("has-result");
-      download.href = lastUrl; download.hidden = false; again.hidden = false;
+      download.hidden = false; again.hidden = false;
       const [w, h] = m.info.salida;
       result.alt = `Foto procesada de ${w} por ${h} píxeles`;
       let t;
@@ -95,8 +118,13 @@
       else {
         t = `Listo en ${(m.info.ms / 1000).toFixed(1).replace(".", ",")} s, ${sizeText(w, h)} px`;
         if (!m.info.rostro) t += ". No se detectó un rostro: se recortó al centro";
+        else t += `. Encuadre de ${m.info.perfil}`;
       }
       setMeta(t, m.info.rostro ? "ok" : "");
+      // Avisos de la versión de escritorio (revisar_v2.txt), salvo el de sin rostro que ya va arriba
+      const avisos = m.info.avisos.filter((a) => !a.startsWith("sin rostro"));
+      notes.hidden = !avisos.length;
+      notes.textContent = avisos.length ? `Conviene revisar: ${avisos.join(", ")}.` : "";
       // Si el tamaño cambió mientras se procesaba, ajustar al tamaño actual
       const cur = size();
       if (valid(cur.w, cur.h) && (cur.w !== w || cur.h !== h)) onSizeInput();
@@ -118,8 +146,7 @@
     try { bitmap = await createImageBitmap(f, { imageOrientation: "from-image" }); }
     catch (_) { setMeta("No se pudo abrir la foto. Prueba con otro archivo.", "err"); return; }
     // Una imagen pegada desde el portapapeles no trae nombre real
-    const stem = origen === "pegada" ? "foto-fotocheck" : (f.name.replace(/\.[^.]+$/, "") || "foto-fotocheck");
-    download.setAttribute("download", stem + ".jpg");
+    stem = origen === "pegada" ? "foto-fotocheck" : (f.name.replace(/\.[^.]+$/, "") || "foto-fotocheck");
     working = true; setMeta(origen === "pegada" ? "Foto pegada. Procesando…" : "Procesando…");
     const job = { bitmap };
     if (!ready) { pending = job; showBusy("Preparando…", 0); worker.postMessage({ type: "init" }); }
@@ -132,8 +159,7 @@
   }
 
   function reset() {
-    result.hidden = true; empty.hidden = false; drop.classList.remove("has-result");
-    download.hidden = true; again.hidden = true;
+    limpiarResultado();
     const { w, h } = size(); setMeta(`Sale en ${sizeText(w, h)} px, formato JPG`);
     file.value = ""; file.click();
   }
@@ -154,7 +180,7 @@
     if (!f) return;                       // texto normal: que siga su curso (p. ej. en los campos de tamaño)
     e.preventDefault();
     if (working) { setMeta("Espera a que termine la foto actual para pegar otra."); return; }
-    if (hasResult()) { result.hidden = true; empty.hidden = false; drop.classList.remove("has-result"); download.hidden = true; again.hidden = true; }
+    if (hasResult()) limpiarResultado();
     accept(f, "pegada");
   });
 

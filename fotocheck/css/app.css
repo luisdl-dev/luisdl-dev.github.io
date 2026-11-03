@@ -100,7 +100,8 @@ h1 {
 
 .badge-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 1rem; min-height: 44px; }
 .badge-foot .meta { flex: 1 1 100%; }
-.badge-foot .actions { margin-left: auto; }
+.badge-foot .notes { flex: 1 1 100%; margin-top: -.5rem; color: #8A5300; font-size: .8125rem; }
+.badge-foot .actions { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
 .meta { color: var(--muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
 .meta.ok { color: var(--ok); font-weight: 600; }
 .meta.err { color: #B42318; }

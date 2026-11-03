@@ -3,6 +3,7 @@ Foto para fotocheck — componentes de terceros
 - ONNX Runtime Web 1.20.1 (Microsoft) — Licencia MIT — vendor/ort.*
 - coi-serviceworker 0.1.7 (Guido Zuidhof) — Licencia MIT — vendor/LICENSE-coi-serviceworker.txt
 - Fuente Archivo (Omnibus-Type) — SIL Open Font License 1.1 — fonts/LICENSE-archivo.txt
-- U²-Net human segmentation (Qin et al.) — Licencia Apache 2.0 — models/seg_human_int8.onnx (cuantizado a int8)
-- IS-Net / DIS general use (Qin et al.) — Licencia Apache 2.0 — models/seg_isnet_int8.onnx (cuantizado a int8)
-- YuNet face detection 2023mar (OpenCV Zoo) — Licencia MIT — models/yunet.onnx (entrada de tamaño dinámico)
+- U²-Net human segmentation (Qin et al.) — Licencia Apache 2.0 — models/u2net_human_seg_f16w.onnx
+  (el mismo modelo de la versión de escritorio, con los pesos guardados en fp16; calcula en fp32)
+- YuNet face detection 2023mar (OpenCV Zoo) — Licencia MIT — models/face_detection_yunet_2023mar.onnx
+  (el mismo modelo de la versión de escritorio, con entrada de tamaño libre)
