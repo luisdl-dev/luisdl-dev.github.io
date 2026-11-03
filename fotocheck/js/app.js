@@ -63,7 +63,7 @@
   resetSize.addEventListener("click", () => { inW.value = DEF_W; inH.value = DEF_H; onSizeInput(); });
 
   // ── Motor ───────────────────────────────────────────────────────────────
-  const VERSION = "2.1", VERSION_FECHA = "3 nov 2026";   // subir en cada cambio publicado
+  const VERSION = "2.2", VERSION_FECHA = "3 nov 2026";   // subir en cada cambio publicado
   document.getElementById("ver").textContent = `${VERSION} (${VERSION_FECHA})`;
   const worker = new Worker(`js/worker.js?v=${VERSION}`);
   let ready = false, initSent = false, working = false, pending = null, lastProgress = null;
@@ -71,7 +71,9 @@
   // Resultado actual: foto normal y, si la cabeza estaba inclinada, la enderezada
   let urls = { normal: null, corregida: null }, verCorregida = false, stem = "foto-fotocheck", grados = 0;
   let info = null, beforeUrl = null, proc = null;
-  const opts = { encuadre: "recomendado", color: { ...NEUTRO } };
+  // rect: recuadro del encuadre personalizado, en píxeles de la foto procesada
+  const opts = { encuadre: "recomendado", color: { ...NEUTRO }, rect: null };
+  let arrastre = null;   // recuadro personalizado en movimiento
 
   function setMeta(text, cls) { meta.textContent = text; meta.className = "meta" + (cls ? " " + cls : ""); }
   function showBusy(text, pct) {
@@ -104,12 +106,19 @@
     afterCap.textContent = `Después · ${sizeText(w, h)} px${corr ? ", enderezada" : ""}`;
     // Recuadro sobre la foto original: la parte que se usó (la enderezada está girada, no coincide)
     cropBox.hidden = !!corr;
-    if (!corr) {
-      const [W, H] = info.procesada, [x0, y0, x1, y1] = info.rect;
-      Object.assign(cropBox.style, { left: `${x0 / W * 100}%`, top: `${y0 / H * 100}%`, width: `${(x1 - x0) / W * 100}%`, height: `${(y1 - y0) / H * 100}%` });
-    }
+    if (!corr && !arrastre) pintarRecuadro(info.rect);
   }
-  straight.addEventListener("click", () => { verCorregida = !verCorregida; mostrar(); });
+  function pintarRecuadro([x0, y0, x1, y1]) {
+    const [W, H] = info.procesada;
+    Object.assign(cropBox.style, { left: `${x0 / W * 100}%`, top: `${y0 / H * 100}%`, width: `${(x1 - x0) / W * 100}%`, height: `${(y1 - y0) / H * 100}%` });
+  }
+  straight.addEventListener("click", () => {
+    verCorregida = !verCorregida;
+    // El recuadro personalizado se mueve sobre la foto original
+    if (verCorregida && opts.encuadre === "personalizado") encHint.textContent = "Para mover el recuadro, vuelve a «Ver original».";
+    else if (info) actualizarEncuadres();
+    mostrar();
+  });
 
   function limpiarResultado() {
     for (const k in urls) if (urls[k]) URL.revokeObjectURL(urls[k]);
@@ -131,6 +140,8 @@
   function aplicarResultado(m) {
     info = m.info;
     window.__ultimo = info;   // datos del último resultado (útil para pruebas)
+    // El motor ajusta el recuadro a la proporción y a la foto: quedarse con su versión
+    if (info.encuadre === "personalizado" && !arrastre) opts.rect = info.rect.slice();
     for (const k in urls) if (urls[k]) URL.revokeObjectURL(urls[k]);
     urls = { normal: URL.createObjectURL(m.blob), corregida: m.blobCorregida ? URL.createObjectURL(m.blobCorregida) : null };
     if (!m.rerender || !urls.corregida) verCorregida = false;
@@ -171,8 +182,8 @@
       working = false; busy.hidden = true;
       proc = { ms: m.info.ms, rostro: m.info.rostro, perfil: m.info.perfil };
       // Cada foto nueva empieza con el flujo por defecto (el de la versión de escritorio)
-      opts.encuadre = "recomendado"; opts.color = { ...NEUTRO };
-      sincronizarControles(); colorHint.textContent = "";
+      opts.encuadre = "recomendado"; opts.color = { ...NEUTRO }; opts.rect = null;
+      sincronizarControles(); colorHint.textContent = ""; editarRecuadro(false);
       aplicarResultado(m);
       before.src = beforeUrl;
       editor.hidden = false;
@@ -235,19 +246,96 @@
     if (!valid(w, h)) return;
     rendering = true;
     if (texto) showBusy(texto, null);
-    worker.postMessage({ type: "render", w, h, encuadre: opts.encuadre, color: { ...opts.color } });
+    const rect = opts.encuadre === "personalizado" ? opts.rect : null;
+    worker.postMessage({ type: "render", w, h, encuadre: opts.encuadre, color: { ...opts.color }, rect });
   }
 
   // ── Encuadre ────────────────────────────────────────────────────────────
   function actualizarEncuadres() {
     const enc = info.encuadres;
     for (const r of radios) r.disabled = !enc[r.value];
-    if (!info.rostro) encHint.textContent = "No se detectó un rostro, así que el recorte es centrado.";
+    if (opts.encuadre === "personalizado") encHint.textContent = "Arrastra el recuadro sobre la foto original para moverlo y usa sus esquinas para cambiar el tamaño. También funciona con las flechas y las teclas + y −.";
+    else if (!info.rostro) encHint.textContent = "No se detectó un rostro, así que el recorte es centrado. Puedes elegirlo a mano con «Personalizado».";
     else if (!enc.cuerpo && !enc["mas-cuerpo"]) encHint.textContent = "La foto no muestra más cuerpo del que ya se ve.";
     else if (!enc["mas-cuerpo"]) encHint.textContent = "La foto no da para «Más cuerpo»: ya se usa todo lo que muestra.";
     else encHint.textContent = "";
   }
-  for (const r of radios) r.addEventListener("change", () => { if (r.checked) { opts.encuadre = r.value; pedirRender(null); } });
+  function editarRecuadro(si) {
+    cropBox.classList.toggle("editable", si);
+    cropBox.tabIndex = si ? 0 : -1;
+    if (si) { cropBox.setAttribute("role", "group"); cropBox.setAttribute("aria-label", "Recuadro del encuadre personalizado"); }
+    else { cropBox.removeAttribute("role"); cropBox.removeAttribute("aria-label"); }
+  }
+  for (const r of radios) {
+    r.addEventListener("change", () => {
+      if (!r.checked) return;
+      opts.encuadre = r.value;
+      const manual = r.value === "personalizado";
+      if (manual) {
+        // Empieza desde el recuadro que se está viendo, sobre la foto original
+        opts.rect = info.rect.slice();
+        if (verCorregida) { verCorregida = false; mostrar(); }
+      }
+      editarRecuadro(manual);
+      actualizarEncuadres();
+      pedirRender(null);
+    });
+  }
+
+  // Recuadro personalizado: mover arrastrando, cambiar tamaño desde las esquinas (proporción fija)
+  const proporcion = () => { const { w, h } = size(); return valid(w, h) ? w / h : DEF_W / DEF_H; };
+  function nuevoRect({ tipo, rect0 }, dx, dy) {
+    const [W, H] = info.procesada, ratio = proporcion();
+    const [x0, y0, x1, y1] = rect0;
+    if (tipo === "mover") {
+      const w = x1 - x0, h = y1 - y0;
+      const nx = Math.min(Math.max(x0 + dx, 0), W - w), ny = Math.min(Math.max(y0 + dy, 0), H - h);
+      return [nx, ny, nx + w, ny + h];
+    }
+    // Esquina opuesta fija; el ancho sigue al puntero sin salirse de la foto
+    const izq = tipo.includes("w"), arriba = tipo.includes("n");
+    const ax = izq ? x1 : x0, ay = arriba ? y1 : y0;
+    const px = (izq ? x0 : x1) + dx, py = (arriba ? y0 : y1) + dy;
+    const maxW = Math.min(izq ? ax : W - ax, (arriba ? ay : H - ay) * ratio);
+    const minW = Math.min(maxW, Math.max(24, W * 0.06));
+    const w = Math.min(Math.max(Math.max(Math.abs(px - ax), Math.abs(py - ay) * ratio), minW), maxW), h = w / ratio;
+    const nx = izq ? ax - w : ax, ny = arriba ? ay - h : ay;
+    return [nx, ny, nx + w, ny + h];
+  }
+  cropBox.addEventListener("pointerdown", (e) => {
+    if (opts.encuadre !== "personalizado" || !opts.rect) return;
+    e.preventDefault();
+    arrastre = { tipo: e.target.dataset.h || "mover", x: e.clientX, y: e.clientY, rect0: opts.rect.slice() };
+    try { cropBox.setPointerCapture(e.pointerId); } catch (_) { /* puntero ya liberado */ }
+    cropBox.classList.add("moviendo");
+  });
+  cropBox.addEventListener("pointermove", (e) => {
+    if (!arrastre) return;
+    const k = info.procesada[0] / cropBox.parentElement.getBoundingClientRect().width;   // pantalla → foto
+    opts.rect = nuevoRect(arrastre, (e.clientX - arrastre.x) * k, (e.clientY - arrastre.y) * k);
+    pintarRecuadro(opts.rect);
+    pedirRender(null);   // mientras se arrastra se va actualizando el resultado
+  });
+  const soltar = () => { if (!arrastre) return; arrastre = null; cropBox.classList.remove("moviendo"); pedirRender(null); };
+  cropBox.addEventListener("pointerup", soltar);
+  cropBox.addEventListener("pointercancel", soltar);
+  cropBox.addEventListener("keydown", (e) => {
+    if (opts.encuadre !== "personalizado" || !opts.rect) return;
+    const [W] = info.procesada, paso = W * (e.shiftKey ? 0.05 : 0.01);
+    const mov = { ArrowLeft: [-paso, 0], ArrowRight: [paso, 0], ArrowUp: [0, -paso], ArrowDown: [0, paso] }[e.key];
+    const r = opts.rect;
+    if (mov) opts.rect = nuevoRect({ tipo: "mover", rect0: r }, mov[0], mov[1]);
+    else if (e.key === "+" || e.key === "=" || e.key === "-" || e.key === "−") {
+      // Crece o se achica desde el centro, dentro de la foto
+      const [, H] = info.procesada, f = e.key === "-" || e.key === "−" ? 0.95 : 1.05, ratio = proporcion();
+      const h = Math.min(Math.max((r[3] - r[1]) * f, 24 / ratio), H, W / ratio), w = h * ratio;
+      const cx = Math.min(Math.max((r[0] + r[2]) / 2, w / 2), W - w / 2), cy = Math.min(Math.max((r[1] + r[3]) / 2, h / 2), H - h / 2);
+      opts.rect = [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2];
+    } else return;
+    e.preventDefault();
+    pintarRecuadro(opts.rect);
+    pedirRender(null);
+  });
 
   // ── Color ───────────────────────────────────────────────────────────────
   const signo = (v) => (v > 0 ? `+${v}` : `${v}`);

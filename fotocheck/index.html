@@ -7,7 +7,7 @@
   <meta name="description" content="Convierte cualquier foto en una foto de fotocheck (480 × 640 o tamaño personalizado) con fondo blanco y el rostro bien encuadrado. Se procesa en tu navegador: la foto no se sube a ningún servidor.">
   <script src="coi-serviceworker.min.js"></script>
   <link rel="preload" href="fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/app.css?v=2.1">
+  <link rel="stylesheet" href="css/app.css?v=2.2">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 32'%3E%3Crect x='1' y='1' width='22' height='30' rx='3' fill='%2314213A'/%3E%3Crect x='8' y='3' width='8' height='2' rx='1' fill='%23DCE2E9'/%3E%3Ccircle cx='12' cy='14' r='4' fill='%23DCE2E9'/%3E%3Cpath d='M5 26c1-5 4-7 7-7s6 2 7 7z' fill='%23DCE2E9'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -21,7 +21,7 @@
 
   <main class="hero">
     <section class="pitch">
-      <h1>Tu foto para fotocheck, lista en un clic</h1>
+      <h1>Tu foto para credencial, lista en un clic</h1>
       <p class="lede">Sube una foto y obtén una con fondo blanco, el rostro centrado y sin deformar, en el tamaño que necesites.</p>
       <ul class="facts">
         <li>Quita el fondo cuidando el cabello y la ropa</li>
@@ -75,7 +75,7 @@
     <div class="editor-grid">
       <div class="compare">
         <figure>
-          <div class="frame"><span class="pic"><img id="before" alt="Foto original"><span class="crop-box" id="crop-box" hidden></span></span></div>
+          <div class="frame"><span class="pic"><img id="before" alt="Foto original"><span class="crop-box" id="crop-box" hidden><i class="h" data-h="nw"></i><i class="h" data-h="ne"></i><i class="h" data-h="sw"></i><i class="h" data-h="se"></i></span></span></div>
           <figcaption>Antes · foto original. El recuadro es la parte que se usa.</figcaption>
         </figure>
         <figure>
@@ -91,6 +91,7 @@
             <label class="choice"><input type="radio" name="encuadre" value="rostro"><span>Más rostro</span></label>
             <label class="choice"><input type="radio" name="encuadre" value="cuerpo"><span>Un poco más de cuerpo</span></label>
             <label class="choice"><input type="radio" name="encuadre" value="mas-cuerpo"><span>Más cuerpo</span></label>
+            <label class="choice"><input type="radio" name="encuadre" value="personalizado"><span>Personalizado</span></label>
           </div>
           <p class="hint" id="enc-hint" aria-live="polite"></p>
         </fieldset>
@@ -129,6 +130,6 @@
     <p class="ver">Versión <span id="ver"></span></p>
   </footer>
 
-  <script src="js/app.js?v=2.1"></script>
+  <script src="js/app.js?v=2.2"></script>
 </body>
 </html>

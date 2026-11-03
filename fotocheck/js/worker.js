@@ -51,7 +51,9 @@ const MIN_LADO_SALIDA = 64, MAX_LADO_SALIDA = 4000;
 // Solo en la web: encuadres alternativos al de mainv10.py ("recomendado").
 // El factor multiplica el alto del recorte; compute_crop sigue limitándolo a
 // lo que muestra la foto (bordes, ancho de la persona y su borde inferior).
+// "personalizado" usa el recuadro que la persona dibuja sobre la foto.
 const ENCUADRES_WEB = { recomendado: 1, rostro: 0.85, cuerpo: 1.25, "mas-cuerpo": 1.6 };
+const PERSONALIZADO = "personalizado";
 // Solo en la web: ajuste de color de la persona (el fondo blanco no se toca)
 const COLOR_NEUTRO = { brillo: 0, contraste: 0, saturacion: 0, temperatura: 0 };
 
@@ -1003,9 +1005,28 @@ async function analizar(rgb, alphaRaw) {
   return st;
 }
 
+/** Recuadro manual llevado a la proporción de salida y dentro de la foto (conserva centro y alto). */
+function ajustarRect(r, W, H, ratio) {
+  const cx = (r[0] + r[2]) / 2, cy = (r[1] + r[3]) / 2;
+  let h = Math.max(16, r[3] - r[1]), w = h * ratio;
+  if (w > W) { w = W; h = w / ratio; }
+  if (h > H) { h = H; w = h * ratio; }
+  const x0 = clamp(cx - w / 2, 0, W - w), y0 = clamp(cy - h / 2, 0, H - h);
+  return [x0, y0, x0 + w, y0 + h];
+}
+
+/** El mismo recuadro manual en la foto enderezada: mismo centro (girado) y mismo tamaño. */
+function rectEnderezado(r, m) {
+  const cx = (r[0] + r[2]) / 2 - m[2], cy = (r[1] + r[3]) / 2 - m[5];
+  const x = m[0] * cx + m[3] * cy, y = m[1] * cx + m[4] * cy;   // inversa de la rotación de PIL
+  const w = r[2] - r[0], h = r[3] - r[1];
+  return [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
+}
+
 /** Segunda mitad de frame_photo: recorte para un tamaño de salida y un encuadre. */
-function encuadrar(st, TW, TH, nivel = "recomendado") {
+function encuadrar(st, TW, TH, nivel = "recomendado", manual = null) {
   const { w: W, h: H } = st.rgb, ratio = TW / TH;
+  if (nivel === PERSONALIZADO && manual) return { rect: ajustarRect(manual, W, H, ratio), modo: "encuadre personalizado" };
   if (!st.cara) return { rect: centerCropRect(W, H, ratio), modo: "sin rostro" };
   const e = ENCUADRES[st.perfil];
   const [rect, m] = computeCrop(W, H, st.cara, st.persona, st.coronilla, e.head / ENCUADRES_WEB[nivel], e.space, ratio);
@@ -1072,7 +1093,7 @@ async function procesar(bitmap, TW, TH, raw) {
       const rgbR = pilRotate(rgb, angulo, true, [255, 255, 255]);
       const aR = pilRotate({ w: rgb.w, h: rgb.h, c: 1, data: alphaRaw }, angulo, false, [0]).data;
       for (let i = 0; i < aR.length; i++) aR[i] = clamp(aR[i], 0, 1);
-      corr = { st: await analizar(rgbR, aR), angulo };
+      corr = { st: await analizar(rgbR, aR), angulo, matriz: pilRotateMatrix(rgb.w, rgb.h, angulo).m };
     }
   }
   last = { st, corr, escala, raw, ms: performance.now() - t0 };
@@ -1082,24 +1103,27 @@ async function procesar(bitmap, TW, TH, raw) {
 
 /** Qué encuadres alternativos cambian de verdad el recorte (si la foto no da para más, no). */
 function opcionesEncuadre(st, TW, TH) {
-  if (!st.cara) return { recomendado: true, rostro: false, cuerpo: false, "mas-cuerpo": false };
+  if (!st.cara) return { recomendado: true, rostro: false, cuerpo: false, "mas-cuerpo": false, [PERSONALIZADO]: true };
   const alto = (nivel) => { const r = encuadrar(st, TW, TH, nivel).rect; return r[3] - r[1]; };
   const h0 = alto("recomendado"), h1 = alto("cuerpo");
-  return { recomendado: true, rostro: alto("rostro") < h0 * 0.98, cuerpo: h1 > h0 * 1.02, "mas-cuerpo": alto("mas-cuerpo") > Math.max(h0, h1) * 1.02 };
+  return { recomendado: true, rostro: alto("rostro") < h0 * 0.98, cuerpo: h1 > h0 * 1.02,
+           "mas-cuerpo": alto("mas-cuerpo") > Math.max(h0, h1) * 1.02, [PERSONALIZADO]: true };
 }
 
-async function render(TW, TH, nivel = "recomendado", color = COLOR_NEUTRO) {
+async function render(TW, TH, nivel = "recomendado", color = COLOR_NEUTRO, manual = null) {
   if (!last) throw new Error("no hay foto cargada");
   if (!Number.isInteger(TW) || !Number.isInteger(TH) || Math.min(TW, TH) < MIN_LADO_SALIDA || Math.max(TW, TH) > MAX_LADO_SALIDA) {
     throw new Error("tamaño de salida no válido");
   }
-  if (!Object.hasOwn(ENCUADRES_WEB, nivel)) nivel = "recomendado";
+  const manualOk = Array.isArray(manual) && manual.length === 4 && manual.every(Number.isFinite);
+  if (!(Object.hasOwn(ENCUADRES_WEB, nivel) || (nivel === PERSONALIZADO && manualOk))) nivel = "recomendado";
   color = normalizarColor(color);
   const { st, corr, escala, raw } = last;
   const transfer = [];
   const salida = (s, version) => {
-    const { rect, modo } = encuadrar(s, TW, TH, nivel);
-    const clave = `${TW}x${TH}|${nivel}`;
+    const rectManual = nivel !== PERSONALIZADO ? null : version === "corregida" ? rectEnderezado(manual, corr.matriz) : manual;
+    const { rect, modo } = encuadrar(s, TW, TH, nivel, rectManual);
+    const clave = `${TW}x${TH}|${rect.map((v) => v.toFixed(2)).join(",")}`;
     let comp = comps.get(version);
     if (!comp || comp.clave !== clave) { comp = { clave, ...prepararComposicion(s.rgb, s.alpha, rect, TW, TH) }; comps.set(version, comp); }
     return { rect, modo, px: pintar(comp, color), auto: comp.stats.auto };
@@ -1137,7 +1161,7 @@ async function manejar(data) {
       const [res, transfer] = await procesar(data.bitmap, data.w, data.h, !!data.raw);
       post("done", res, transfer);
     } else if (type === "render") {
-      const [res, transfer] = await render(data.w, data.h, data.encuadre, data.color);
+      const [res, transfer] = await render(data.w, data.h, data.encuadre, data.color, data.rect);
       post("done", { ...res, rerender: true }, transfer);
     }
   } catch (err) {
