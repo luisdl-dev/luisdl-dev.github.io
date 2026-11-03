@@ -54,8 +54,8 @@ const MIN_LADO_SALIDA = 64, MAX_LADO_SALIDA = 4000;
 // "personalizado" usa el recuadro que la persona dibuja sobre la foto.
 const ENCUADRES_WEB = { recomendado: 1, rostro: 0.85, cuerpo: 1.25, "mas-cuerpo": 1.6 };
 const PERSONALIZADO = "personalizado";
-// Solo en la web: ajuste de color de la persona (el fondo blanco no se toca)
-const COLOR_NEUTRO = { brillo: 0, contraste: 0, saturacion: 0, temperatura: 0 };
+// Solo en la web: ajustes de color y nitidez de la persona (el fondo blanco no se toca)
+const COLOR_NEUTRO = { brillo: 0, contraste: 0, saturacion: 0, temperatura: 0, nitidez: 0 };
 
 let sessions = null, cargando = null;
 let last = null;         // última foto analizada: permite cambiar tamaño, encuadre y color sin reprocesar
@@ -836,13 +836,14 @@ function prepararComposicion(rgb, alpha, rect, TW, TH) {
   const img = new Float32Array(n * 3);
   for (let i = 0; i < n * 3; i++) img[i] = cR[i] / 255;
   const F = DECONTAMINAR_BORDES ? estimateForeground(img, a, TW, TH) : img;
-  return { F, a, n, stats: estadisticasColor(F, a, n) };
+  return { F, a, n, w: TW, h: TH, stats: estadisticasColor(F, a, n) };
 }
 
-/** Segunda mitad de compose_on_white: compone sobre blanco (RGBA), con el ajuste de color de la web. */
+/** Segunda mitad de compose_on_white: compone sobre blanco (RGBA), con los ajustes de la web. */
 function pintar(comp, color) {
   const { a, n } = comp;
-  const F = esNeutro(color) ? comp.F : corregirColor(comp.F, n, color, comp.stats.pivote);
+  let F = esNeutro(color) ? comp.F : corregirColor(comp.F, n, color, comp.stats.pivote);
+  if (color && color.nitidez) F = enfocar(F, comp.w, comp.h, color.nitidez);
   const px = new Uint8ClampedArray(n * 4);
   for (let i = 0; i < n; i++) {
     for (let c = 0; c < 3; c++) px[i * 4 + c] = trunc(clamp((F[i * 3 + c] * a[i] + (1 - a[i])) * 255 + 0.5, 0, 255));
@@ -856,8 +857,53 @@ const esNeutro = (c) => !c || (!c.brillo && !c.contraste && !c.saturacion && !c.
 
 function normalizarColor(c) {
   const out = { ...COLOR_NEUTRO };
-  for (const k in out) out[k] = clamp(Math.round(Number(c && c[k]) || 0), -100, 100);
+  for (const k in out) out[k] = clamp(Math.round(Number(c && c[k]) || 0), k === "nitidez" ? 0 : -100, 100);
   return out;
+}
+
+/**
+ * Nitidez (0 a 100): máscara de enfoque sobre el brillo, para no crear
+ * bordes de color. Las diferencias muy pequeñas (ruido, compresión) no se
+ * refuerzan. El radio crece con el tamaño de salida.
+ */
+function enfocar(F, w, h, nitidez) {
+  const n = w * h, k = nitidez / 100 * 1.5, umbral = 0.004;
+  const sigma = 1.2 * Math.max(w, h) / 640, rad = Math.max(1, Math.ceil(2.5 * sigma));
+  const ker = new Float64Array(2 * rad + 1);
+  let s = 0;
+  for (let i = -rad; i <= rad; i++) { ker[i + rad] = Math.exp(-(i * i) / (2 * sigma * sigma)); s += ker[i + rad]; }
+  for (let i = 0; i < ker.length; i++) ker[i] /= s;
+  const Y = new Float32Array(n);
+  for (let i = 0; i < n; i++) Y[i] = 0.299 * F[i * 3] + 0.587 * F[i * 3 + 1] + 0.114 * F[i * 3 + 2];
+  // Desenfoque gaussiano separable (borde repetido)
+  const tmp = new Float32Array(n), Yb = new Float32Array(n);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let v = 0;
+      for (let i = -rad; i <= rad; i++) v += ker[i + rad] * Y[y * w + clamp(x + i, 0, w - 1)];
+      tmp[y * w + x] = v;
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let v = 0;
+      for (let i = -rad; i <= rad; i++) v += ker[i + rad] * tmp[clamp(y + i, 0, h - 1) * w + x];
+      Yb[y * w + x] = v;
+    }
+  }
+  const out = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    let d = Y[i] - Yb[i];
+    d = Math.abs(d) <= umbral ? 0 : d - Math.sign(d) * umbral;
+    for (let c = 0; c < 3; c++) out[i * 3 + c] = clamp(F[i * 3 + c] + k * d, 0, 1);
+  }
+  return out;
+}
+
+/** Nitidez propuesta por "Automático": solo si el recorte tuvo que ampliarse. */
+function nitidezAuto(TW, rect) {
+  const ampliacion = TW / Math.max(1, rect[2] - rect[0]);
+  return ampliacion > 1.25 ? Math.round(clamp((ampliacion - 1) * 25, 0, 40)) : 0;
 }
 
 /**
@@ -1126,7 +1172,7 @@ async function render(TW, TH, nivel = "recomendado", color = COLOR_NEUTRO, manua
     const clave = `${TW}x${TH}|${rect.map((v) => v.toFixed(2)).join(",")}`;
     let comp = comps.get(version);
     if (!comp || comp.clave !== clave) { comp = { clave, ...prepararComposicion(s.rgb, s.alpha, rect, TW, TH) }; comps.set(version, comp); }
-    return { rect, modo, px: pintar(comp, color), auto: comp.stats.auto };
+    return { rect, modo, px: pintar(comp, color), auto: { ...comp.stats.auto, nitidez: nitidezAuto(TW, rect) } };
   };
   const a = salida(st, "normal");
   const info = {

@@ -9,10 +9,10 @@
   const editor = $("editor"), before = $("before"), cropBox = $("crop-box"), after = $("after"), afterCap = $("after-cap");
   const encHint = $("enc-hint"), colorHint = $("color-hint"), download2 = $("download2");
   const radios = [...document.querySelectorAll('input[name="encuadre"]')];
-  const SLIDERS = ["brillo", "contraste", "saturacion", "temperatura"];
+  const SLIDERS = ["brillo", "contraste", "saturacion", "temperatura", "nitidez"];
 
   const DEF_W = 480, DEF_H = 640, MIN = 64, MAX = 4000;
-  const NEUTRO = { brillo: 0, contraste: 0, saturacion: 0, temperatura: 0 };
+  const NEUTRO = { brillo: 0, contraste: 0, saturacion: 0, temperatura: 0, nitidez: 0 };
 
   // Atajo de pegar según el sistema
   if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) pasteKey.textContent = "⌘ + V";
@@ -63,7 +63,7 @@
   resetSize.addEventListener("click", () => { inW.value = DEF_W; inH.value = DEF_H; onSizeInput(); });
 
   // ── Motor ───────────────────────────────────────────────────────────────
-  const VERSION = "2.2", VERSION_FECHA = "3 nov 2026";   // subir en cada cambio publicado
+  const VERSION = "2.3", VERSION_FECHA = "3 nov 2026";   // subir en cada cambio publicado
   document.getElementById("ver").textContent = `${VERSION} (${VERSION_FECHA})`;
   const worker = new Worker(`js/worker.js?v=${VERSION}`);
   let ready = false, initSent = false, working = false, pending = null, lastProgress = null;
@@ -337,17 +337,17 @@
     pedirRender(null);
   });
 
-  // ── Color ───────────────────────────────────────────────────────────────
-  const signo = (v) => (v > 0 ? `+${v}` : `${v}`);
+  // ── Ajustes (color y nitidez) ───────────────────────────────────────────
+  const signo = (v, k) => (v > 0 && k !== "nitidez" ? `+${v}` : `${v}`);
   function sincronizarControles() {
     for (const r of radios) r.checked = r.value === opts.encuadre;
-    for (const k of SLIDERS) { $(`c-${k}`).value = opts.color[k]; $(`o-${k}`).textContent = signo(opts.color[k]); }
+    for (const k of SLIDERS) { $(`c-${k}`).value = opts.color[k]; $(`o-${k}`).textContent = signo(opts.color[k], k); }
   }
   let colorTimer = null;
   for (const k of SLIDERS) {
     const el = $(`c-${k}`);
     el.addEventListener("input", () => {
-      opts.color[k] = Number(el.value); $(`o-${k}`).textContent = signo(opts.color[k]);
+      opts.color[k] = Number(el.value); $(`o-${k}`).textContent = signo(opts.color[k], k);
       colorHint.textContent = "";
       clearTimeout(colorTimer); colorTimer = setTimeout(() => pedirRender(null), 60);
     });
@@ -357,7 +357,7 @@
     opts.color = { ...info.colorAuto };
     sincronizarControles();
     const nada = SLIDERS.every((k) => !opts.color[k]);
-    colorHint.textContent = nada ? "El color ya estaba equilibrado: no hizo falta cambiarlo." : "Ajuste automático aplicado. Puedes afinarlo con los controles.";
+    colorHint.textContent = nada ? "La foto ya estaba equilibrada: no hizo falta cambiarla." : "Ajuste automático aplicado. Puedes afinarlo con los controles.";
     pedirRender(null);
   });
   $("c-reset").addEventListener("click", () => {
