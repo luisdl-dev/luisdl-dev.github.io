@@ -48,8 +48,16 @@ const JPEG_QUALITY = 0.95;
 const MAX_LADO = 2400;
 const MIN_LADO_SALIDA = 64, MAX_LADO_SALIDA = 4000;
 
-let sessions = null;
-let last = null;   // última foto analizada: permite cambiar el tamaño sin reprocesar
+// Solo en la web: encuadres alternativos al de mainv10.py ("recomendado").
+// El factor multiplica el alto del recorte; compute_crop sigue limitándolo a
+// lo que muestra la foto (bordes, ancho de la persona y su borde inferior).
+const ENCUADRES_WEB = { recomendado: 1, rostro: 0.85, cuerpo: 1.25, "mas-cuerpo": 1.6 };
+// Solo en la web: ajuste de color de la persona (el fondo blanco no se toca)
+const COLOR_NEUTRO = { brillo: 0, contraste: 0, saturacion: 0, temperatura: 0 };
+
+let sessions = null, cargando = null;
+let last = null;         // última foto analizada: permite cambiar tamaño, encuadre y color sin reprocesar
+let comps = new Map();   // última composición de cada versión: el color se reaplica sin recalcular bordes
 
 ort.env.wasm.wasmPaths = "../vendor/";
 ort.env.logLevel = "error";
@@ -809,8 +817,8 @@ function estimateForeground(image, alpha, w, h) {
   return blurFusion(image, F, B, alpha, w, h, 6)[0];
 }
 
-/** compose_on_white: recorta, escala al tamaño de salida y compone sobre blanco (RGBA). */
-function composeOnWhite(rgb, alpha, rect, TW, TH) {
+/** Primera mitad de compose_on_white: recorte escalado, alfa y color limpio de los bordes. */
+function prepararComposicion(rgb, alpha, rect, TW, TH) {
   const { w: W, h: H } = rgb;
   const [x0, y0, x1, y1] = rect.map(pyRound).map((v, i) => clamp(v, 0, i % 2 ? H : W));
   const cw = x1 - x0, ch = y1 - y0;
@@ -826,12 +834,91 @@ function composeOnWhite(rgb, alpha, rect, TW, TH) {
   const img = new Float32Array(n * 3);
   for (let i = 0; i < n * 3; i++) img[i] = cR[i] / 255;
   const F = DECONTAMINAR_BORDES ? estimateForeground(img, a, TW, TH) : img;
+  return { F, a, n, stats: estadisticasColor(F, a, n) };
+}
+
+/** Segunda mitad de compose_on_white: compone sobre blanco (RGBA), con el ajuste de color de la web. */
+function pintar(comp, color) {
+  const { a, n } = comp;
+  const F = esNeutro(color) ? comp.F : corregirColor(comp.F, n, color, comp.stats.pivote);
   const px = new Uint8ClampedArray(n * 4);
   for (let i = 0; i < n; i++) {
     for (let c = 0; c < 3; c++) px[i * 4 + c] = trunc(clamp((F[i * 3 + c] * a[i] + (1 - a[i])) * 255 + 0.5, 0, 255));
     px[i * 4 + 3] = 255;
   }
   return px;
+}
+
+// ── Ajuste de color (solo web) ──────────────────────────────────────────────
+const esNeutro = (c) => !c || (!c.brillo && !c.contraste && !c.saturacion && !c.temperatura);
+
+function normalizarColor(c) {
+  const out = { ...COLOR_NEUTRO };
+  for (const k in out) out[k] = clamp(Math.round(Number(c && c[k]) || 0), -100, 100);
+  return out;
+}
+
+/**
+ * Temperatura (rojo/azul), contraste alrededor del tono medio de la persona,
+ * brillo y saturación. Valores de -100 a 100; 0 = sin cambio.
+ */
+function corregirColor(F, n, c, pivote) {
+  const t = c.temperatura / 100 * 0.15, off = c.brillo / 100 * 0.25;
+  const k = 1 + c.contraste / 100 * 0.5, s = 1 + c.saturacion / 100;
+  const out = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const r = (F[i * 3] * (1 + t) - pivote) * k + pivote + off;
+    const g = (F[i * 3 + 1] - pivote) * k + pivote + off;
+    const b = (F[i * 3 + 2] * (1 - t) - pivote) * k + pivote + off;
+    const y = 0.299 * r + 0.587 * g + 0.114 * b;
+    out[i * 3] = clamp(y + (r - y) * s, 0, 1);
+    out[i * 3 + 1] = clamp(y + (g - y) * s, 0, 1);
+    out[i * 3 + 2] = clamp(y + (b - y) * s, 0, 1);
+  }
+  return out;
+}
+
+/**
+ * Tono medio de la persona (pivote del contraste) y propuesta del botón
+ * "Automático": niveles por percentiles (no depende del tono de piel),
+ * algo de saturación si los colores están apagados y temperatura solo si
+ * los tonos neutros (camisa, cuello) tienen un tinte claro.
+ */
+function estadisticasColor(F, a, n) {
+  const hist = new Int32Array(1024);
+  let cnt = 0, sumaCroma = 0, nNeutro = 0, sumaTinte = 0, sumaYN = 0;
+  for (let i = 0; i < n; i++) {
+    if (a[i] <= MASK_THRESHOLD) continue;
+    const r = F[i * 3], g = F[i * 3 + 1], b = F[i * 3 + 2];
+    const y = 0.299 * r + 0.587 * g + 0.114 * b, croma = Math.max(r, g, b) - Math.min(r, g, b);
+    hist[Math.min(1023, trunc(y * 1024))]++; cnt++;
+    sumaCroma += croma;
+    if (croma < 0.08 && y > 0.45) { nNeutro++; sumaTinte += r - b; sumaYN += y; }
+  }
+  if (cnt < 100) return { pivote: 0.5, auto: { ...COLOR_NEUTRO } };
+  const percentil = (p) => {
+    let acc = 0;
+    for (let v = 0; v < 1024; v++) { acc += hist[v]; if (acc > p * cnt) return (v + 0.5) / 1024; }
+    return 1;
+  };
+  const lo = percentil(0.01), hi = percentil(0.99), pivote = (lo + hi) / 2;
+  const k = clamp(0.92 / Math.max(hi - lo, 1e-3), 1, 1.35);
+  const off = clamp(0.5 - pivote, -0.12, 0.12);
+  const croma = sumaCroma / cnt;
+  let temp = 0;
+  if (nNeutro > 0.02 * cnt) {
+    const tinte = sumaTinte / nNeutro;
+    if (Math.abs(tinte) > 0.015) temp = clamp(-tinte / (0.3 * (sumaYN / nNeutro)) * 70, -30, 30);
+  }
+  return {
+    pivote,
+    auto: {
+      brillo: Math.round(off / 0.25 * 100),
+      contraste: Math.round((k - 1) / 0.5 * 100),
+      saturacion: croma < 0.12 ? Math.round(clamp((0.12 - croma) / 0.12 * 25, 0, 20)) : 0,
+      temperatura: Math.round(temp),
+    },
+  };
 }
 
 /** estimate_tilt: ojos + eje nariz→boca deben coincidir para corregir. */
@@ -916,12 +1003,12 @@ async function analizar(rgb, alphaRaw) {
   return st;
 }
 
-/** Segunda mitad de frame_photo: recorte para un tamaño de salida. */
-function encuadrar(st, TW, TH) {
+/** Segunda mitad de frame_photo: recorte para un tamaño de salida y un encuadre. */
+function encuadrar(st, TW, TH, nivel = "recomendado") {
   const { w: W, h: H } = st.rgb, ratio = TW / TH;
   if (!st.cara) return { rect: centerCropRect(W, H, ratio), modo: "sin rostro" };
   const e = ENCUADRES[st.perfil];
-  const [rect, m] = computeCrop(W, H, st.cara, st.persona, st.coronilla, e.head, e.space, ratio);
+  const [rect, m] = computeCrop(W, H, st.cara, st.persona, st.coronilla, e.head / ENCUADRES_WEB[nivel], e.space, ratio);
   let modo = `${st.perfil} (${st.origen}), coronilla por ${st.fuente}, ${m}`;
   if (st.ganados) modo += `, puntas de cabello +${st.ganados} px`;
   return { rect, modo };
@@ -989,27 +1076,45 @@ async function procesar(bitmap, TW, TH, raw) {
     }
   }
   last = { st, corr, escala, raw, ms: performance.now() - t0 };
+  comps = new Map();
   return render(TW, TH);
 }
 
-async function render(TW, TH) {
+/** Qué encuadres alternativos cambian de verdad el recorte (si la foto no da para más, no). */
+function opcionesEncuadre(st, TW, TH) {
+  if (!st.cara) return { recomendado: true, rostro: false, cuerpo: false, "mas-cuerpo": false };
+  const alto = (nivel) => { const r = encuadrar(st, TW, TH, nivel).rect; return r[3] - r[1]; };
+  const h0 = alto("recomendado"), h1 = alto("cuerpo");
+  return { recomendado: true, rostro: alto("rostro") < h0 * 0.98, cuerpo: h1 > h0 * 1.02, "mas-cuerpo": alto("mas-cuerpo") > Math.max(h0, h1) * 1.02 };
+}
+
+async function render(TW, TH, nivel = "recomendado", color = COLOR_NEUTRO) {
   if (!last) throw new Error("no hay foto cargada");
   if (!Number.isInteger(TW) || !Number.isInteger(TH) || Math.min(TW, TH) < MIN_LADO_SALIDA || Math.max(TW, TH) > MAX_LADO_SALIDA) {
     throw new Error("tamaño de salida no válido");
   }
+  if (!Object.hasOwn(ENCUADRES_WEB, nivel)) nivel = "recomendado";
+  color = normalizarColor(color);
   const { st, corr, escala, raw } = last;
   const transfer = [];
-  const salida = (s) => { const { rect, modo } = encuadrar(s, TW, TH); return { rect, modo, px: composeOnWhite(s.rgb, s.alpha, rect, TW, TH) }; };
-  const a = salida(st);
+  const salida = (s, version) => {
+    const { rect, modo } = encuadrar(s, TW, TH, nivel);
+    const clave = `${TW}x${TH}|${nivel}`;
+    let comp = comps.get(version);
+    if (!comp || comp.clave !== clave) { comp = { clave, ...prepararComposicion(s.rgb, s.alpha, rect, TW, TH) }; comps.set(version, comp); }
+    return { rect, modo, px: pintar(comp, color), auto: comp.stats.auto };
+  };
+  const a = salida(st, "normal");
   const info = {
     salida: [TW, TH], ms: Math.round(last.ms), rostro: !!st.cara, perfil: st.perfil,
     modo: a.modo, rect: a.rect, avisos: warningsFor(st, a.rect, TW, escala),
     escala, procesada: [st.rgb.w, st.rgb.h], corregida: null,
+    encuadre: nivel, encuadres: opcionesEncuadre(st, TW, TH), color, colorAuto: a.auto,
   };
   const res = { info, blob: await aJpeg(a.px, TW, TH) };
   if (raw) { res.pixels = a.px; transfer.push(a.px.buffer); }
   if (corr) {
-    const b = salida(corr.st);
+    const b = salida(corr.st, "corregida");
     info.corregida = { angulo: corr.angulo, modo: b.modo, rect: b.rect, rostro: !!corr.st.cara };
     res.blobCorregida = await aJpeg(b.px, TW, TH);
     if (raw) { res.pixelsCorregida = b.px; transfer.push(b.px.buffer); }
@@ -1017,21 +1122,29 @@ async function render(TW, TH) {
   return [res, transfer];
 }
 
-self.onmessage = async (e) => {
-  const { type } = e.data;
+// La página empieza a descargar los modelos al abrirse; una foto que llegue
+// antes de terminar espera a la misma descarga.
+const asegurarModelos = () => cargando || (cargando = cargarModelos().catch((err) => { cargando = null; throw err; }));
+
+async function manejar(data) {
+  const { type } = data;
   try {
     if (type === "init") {
-      if (!sessions) await cargarModelos();
+      await asegurarModelos();
       post("ready");
     } else if (type === "process") {
-      if (!sessions) await cargarModelos();
-      const [res, transfer] = await procesar(e.data.bitmap, e.data.w, e.data.h, !!e.data.raw);
+      await asegurarModelos();
+      const [res, transfer] = await procesar(data.bitmap, data.w, data.h, !!data.raw);
       post("done", res, transfer);
-    } else if (type === "resize") {
-      const [res, transfer] = await render(e.data.w, e.data.h);
-      post("done", { ...res, resized: true }, transfer);
+    } else if (type === "render") {
+      const [res, transfer] = await render(data.w, data.h, data.encuadre, data.color);
+      post("done", { ...res, rerender: true }, transfer);
     }
   } catch (err) {
     post("error", { message: String(err && err.message ? err.message : err) });
   }
-};
+}
+
+// Mensajes en orden: un ajuste nunca se mezcla con una foto nueva a medio procesar
+let cola = Promise.resolve();
+self.onmessage = (e) => { cola = cola.then(() => manejar(e.data)); };
